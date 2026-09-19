@@ -1,0 +1,52 @@
+import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+
+// Locate .env file: check current directory first, then root project directory
+const cwdEnvPath = path.resolve(process.cwd(), ".env");
+const rootEnvPath = path.resolve(process.cwd(), "..", ".env");
+
+if (fs.existsSync(cwdEnvPath)) {
+  dotenv.config({ path: cwdEnvPath });
+} else if (fs.existsSync(rootEnvPath)) {
+  dotenv.config({ path: rootEnvPath });
+} else {
+  dotenv.config();
+}
+
+export interface AppConfig {
+  port: number;
+  nodeEnv: "development" | "production" | "test";
+  databaseUrl: string;
+}
+
+export function sanitizeDatabaseUrl(url?: string): string {
+  if (!url) return "<not-set>";
+  try {
+    // Replace username:password in mongodb URI with redacted placeholders
+    return url.replace(/\/\/([^:]+):([^@]+)@/, "//***:***@");
+  } catch {
+    return "<redacted-database-url>";
+  }
+}
+
+export function loadConfig(): AppConfig {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+
+  if (!databaseUrl) {
+    throw new Error(
+      "Configuration error: Missing required environment variable 'DATABASE_URL'."
+    );
+  }
+
+  const port = parseInt(process.env.PORT || "5000", 10);
+  const nodeEnv = (process.env.NODE_ENV || "development") as AppConfig["nodeEnv"];
+
+  return {
+    port: isNaN(port) ? 5000 : port,
+    nodeEnv,
+    databaseUrl,
+  };
+}
+
+export const config = loadConfig();
