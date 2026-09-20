@@ -11,6 +11,7 @@ import {
   updateKitQuestionsAndFlashcards,
   updateKitStatus,
   updateKitCoverage,
+  updateKitSchedule,
 } from "../db/kits.js";
 import {
   toSafeKit,
@@ -29,6 +30,7 @@ import { crawlerService, CrawlerError } from "../services/crawler/index.js";
 import { researchService } from "../services/research/index.js";
 import { generationService } from "../services/generation/index.js";
 import { coverageService } from "../services/coverage/index.js";
+import { scheduleService, ScheduleError } from "../services/schedule/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -969,6 +971,140 @@ export async function coverageKitHandler(
         error: {
           code: error.code,
           message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/schedule
+ * Generates a deterministic interview preparation schedule without LLM calls.
+ */
+export async function scheduleKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    // 1. Fetch existing kit (ownership enforced at DB query level)
+    const kit = await findKitById(id, userId);
+    if (!kit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    // 2. Validate requirements exist
+    const requirements = kit.role?.requirements || [];
+    if (requirements.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not have any extracted requirements. Run /extract first.",
+        },
+      });
+      return;
+    }
+
+    // 3. Validate questions exist
+    const questions = kit.questions || [];
+    if (questions.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not have any interview questions. Run /generate first.",
+        },
+      });
+      return;
+    }
+
+    // 4. Determine requested days (from request body if provided, else kit.schedule.days_available)
+    let requestedDays = req.body?.days !== undefined ? req.body.days : kit.schedule?.days_available;
+    if (requestedDays === undefined || requestedDays === null) {
+      requestedDays = 5;
+    }
+
+    const daysValidation = validateDays(requestedDays);
+    if (!daysValidation.valid) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: daysValidation.error || "Invalid preparation days.",
+        },
+      });
+      return;
+    }
+
+    // 5. Generate schedule deterministically (NO LLM)
+    const schedule = scheduleService.generateSchedule({
+      requirements,
+      questions,
+      days: daysValidation.value!,
+    });
+
+    // 6. Persist schedule in MongoDB with ownership check
+    const updatedKit = await updateKitSchedule(id, userId, schedule);
+
+    if (!updatedKit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      kit: toSafeKit(updatedKit),
+      schedule,
+    });
+  } catch (error: unknown) {
+    if (error instanceof ScheduleError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.details ? { details: error.details } : {}),
         },
       });
       return;

@@ -8,6 +8,7 @@ import {
   InternalKitFlashcard,
   GenerationStatus,
   KitCoverage,
+  KitSchedule,
 } from "../types/kit.js";
 import { isValidObjectId } from "../utils/validation.js";
 
@@ -390,6 +391,38 @@ export async function updateKitCoverage(
         "coverage.uncovered_requirement_ids": coverage.uncovered_requirement_ids,
         "coverage.passes": coverage.passes,
         status,
+        updatedAt: new Date(),
+      },
+      $unset: {
+        errorMessage: "",
+      },
+    },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
+
+/**
+ * Updates schedule for a Kit.
+ * Strictly enforces query-level ownership and records updated timestamp.
+ */
+export async function updateKitSchedule(
+  kitId: string,
+  userId: string,
+  schedule: KitSchedule
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: {
+        "schedule.days_available": schedule.days_available,
+        "schedule.days": schedule.days,
         updatedAt: new Date(),
       },
       $unset: {
