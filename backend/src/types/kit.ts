@@ -61,11 +61,24 @@ export interface KitQuestion {
   difficulty: QuestionDifficulty; // 1 | 2 | 3
 }
 
+export interface InternalKitQuestion extends KitQuestion {
+  is_custom?: boolean;
+  is_edited?: boolean;
+  is_pinned?: boolean;
+  order?: number;
+}
+
 export interface KitFlashcard {
   id: string; // "f1", "f2", ...
   front: string;
   back: string;
   requirement_ids: string[];
+}
+
+export interface InternalKitFlashcard extends KitFlashcard {
+  is_custom?: boolean;
+  is_edited?: boolean;
+  order?: number;
 }
 
 export interface KitScheduleDay {
@@ -107,12 +120,12 @@ export interface IKitDocument {
   errorMessage?: string;
   jd: string;
 
-  // Strict Appendix A Structure Fields
+  // Strict Appendix A Structure Fields (with internal builder flags)
   source: KitSource;
   company_brief: KitCompanyBrief;
   role: KitRole;
-  questions: KitQuestion[];
-  flashcards: KitFlashcard[];
+  questions: InternalKitQuestion[];
+  flashcards: InternalKitFlashcard[];
   schedule: KitSchedule;
   coverage: KitCoverage;
 
@@ -123,6 +136,43 @@ export interface IKitDocument {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * Sanitizes an internal question to the strict Appendix A contract.
+ */
+function sanitizeQuestion(q: InternalKitQuestion): KitQuestion {
+  return {
+    id: q.id,
+    requirement_ids: q.requirement_ids,
+    category: q.category,
+    prompt: q.prompt,
+    answer_outline: q.answer_outline,
+    difficulty: q.difficulty,
+  };
+}
+
+/**
+ * Sanitizes an internal flashcard to the strict Appendix A contract.
+ */
+function sanitizeFlashcard(f: InternalKitFlashcard): KitFlashcard {
+  return {
+    id: f.id,
+    front: f.front,
+    back: f.back,
+    requirement_ids: f.requirement_ids,
+  };
+}
+
+/**
+ * Sanitizes company brief to strict Appendix A fields (removes is_edited).
+ */
+function sanitizeCompanyBrief(b: KitCompanyBrief): KitCompanyBrief {
+  return {
+    summary: b.summary,
+    what_they_do: b.what_they_do,
+    sources: b.sources,
+  };
 }
 
 /**
@@ -180,6 +230,7 @@ export interface UpdateKitParams {
 
 /**
  * Converts a MongoDB IKitDocument into a client-safe SafeKit.
+ * Strictly cleanses any internal builder metadata to guarantee Appendix A conformance.
  */
 export function toSafeKit(doc: IKitDocument): SafeKit {
   return {
@@ -190,10 +241,10 @@ export function toSafeKit(doc: IKitDocument): SafeKit {
     ...(doc.errorMessage ? { errorMessage: doc.errorMessage } : {}),
     jd: doc.jd,
     source: doc.source,
-    company_brief: doc.company_brief,
+    company_brief: sanitizeCompanyBrief(doc.company_brief),
     role: doc.role,
-    questions: doc.questions || [],
-    flashcards: doc.flashcards || [],
+    questions: (doc.questions || []).map(sanitizeQuestion),
+    flashcards: (doc.flashcards || []).map(sanitizeFlashcard),
     schedule: doc.schedule,
     coverage: doc.coverage,
     createdAt: doc.createdAt.toISOString(),

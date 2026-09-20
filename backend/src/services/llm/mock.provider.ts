@@ -39,6 +39,56 @@ export class MockLlmProvider implements ILlmProvider {
             },
           });
         }
+
+        if (
+          options?.systemPrompt?.includes("interview preparation coach") ||
+          prompt.includes("<requirements>")
+        ) {
+          return JSON.stringify({
+            questions: [
+              {
+                requirement_ids: ["r1"],
+                category: "technical",
+                prompt: "How does the Node.js event loop handle asynchronous I/O and microtasks?",
+                answer_outline: "Explain the libuv thread pool, phases of the event loop, process.nextTick, and Promise microtask queue.",
+                difficulty: 2,
+              },
+              {
+                requirement_ids: ["r2"],
+                category: "system-design",
+                prompt: "How would you architect a fault-tolerant distributed streaming pipeline for high-throughput events?",
+                answer_outline: "Discuss partitioning, consumer groups, backpressure, exactly-once vs at-least-once delivery, and state checkpointing.",
+                difficulty: 3,
+              },
+              {
+                requirement_ids: ["r3"],
+                category: "behavioural",
+                prompt: "Tell me about a time you resolved a critical disagreement with cross-functional stakeholders regarding system architecture.",
+                answer_outline: "Highlight the situation, objective data used, trade-off communication, consensus building, and project outcome.",
+                difficulty: 1,
+              },
+              {
+                requirement_ids: ["r4"],
+                category: "company-fit",
+                prompt: "How do you align your technical architecture decisions with business domain constraints in a fast-paced product environment?",
+                answer_outline: "Discuss balancing technical debt with shipping velocity, domain-driven design, and customer feedback loops.",
+                difficulty: 2,
+              },
+            ],
+            flashcards: [
+              {
+                requirement_ids: ["r1"],
+                front: "What is the difference between process.nextTick() and setImmediate() in Node.js?",
+                back: "process.nextTick() fires immediately after the current operation before the event loop continues; setImmediate() executes on the check phase of the event loop.",
+              },
+              {
+                requirement_ids: ["r2"],
+                front: "What is backpressure in streaming systems?",
+                back: "A mechanism that slows down the producer when the consumer cannot process data fast enough, preventing buffer overflow and memory exhaustion.",
+              },
+            ],
+          });
+        }
         return JSON.stringify({
           requirements: [
             {

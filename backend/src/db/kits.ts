@@ -4,6 +4,9 @@ import {
   IKitDocument,
   CreateKitParams,
   UpdateKitParams,
+  InternalKitQuestion,
+  InternalKitFlashcard,
+  GenerationStatus,
 } from "../types/kit.js";
 import { isValidObjectId } from "../utils/validation.js";
 
@@ -285,6 +288,77 @@ export async function updateKitResearchResult(
   const result = await collection.findOneAndUpdate(
     { _id: new ObjectId(kitId), userId },
     { $set: updateFields },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
+
+/**
+ * Updates questions, flashcards, and status for a Kit.
+ * Enforces ownership at query level and records updated timestamp.
+ */
+export async function updateKitQuestionsAndFlashcards(
+  kitId: string,
+  userId: string,
+  questions: InternalKitQuestion[],
+  flashcards: InternalKitFlashcard[],
+  status: GenerationStatus = "completed"
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: {
+        questions,
+        flashcards,
+        status,
+        updatedAt: new Date(),
+      },
+      $unset: {
+        errorMessage: "",
+      },
+    },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
+
+/**
+ * Updates the generation status and optional error message for a Kit.
+ * Enforces ownership at query level.
+ */
+export async function updateKitStatus(
+  kitId: string,
+  userId: string,
+  status: GenerationStatus,
+  errorMessage?: string
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const setFields: Record<string, unknown> = {
+    status,
+    updatedAt: new Date(),
+  };
+
+  const updateDoc: Record<string, unknown> = { $set: setFields };
+  if (errorMessage) {
+    setFields["errorMessage"] = errorMessage;
+  } else {
+    updateDoc["$unset"] = { errorMessage: "" };
+  }
+
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    updateDoc,
     { returnDocument: "after" }
   );
 

@@ -8,6 +8,8 @@ import {
   updateKitRequirements,
   updateKitCrawlResult,
   updateKitResearchResult,
+  updateKitQuestionsAndFlashcards,
+  updateKitStatus,
 } from "../db/kits.js";
 import {
   toSafeKit,
@@ -24,6 +26,7 @@ import { requirementExtractionService } from "../services/requirement-extraction
 import { LlmError } from "../services/llm/types.js";
 import { crawlerService, CrawlerError } from "../services/crawler/index.js";
 import { researchService } from "../services/research/index.js";
+import { generationService } from "../services/generation/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -693,6 +696,127 @@ export async function researchCompanyHandler(
         sources_used: researchResult.sourcesUsed,
       },
     });
+  } catch (error: unknown) {
+    if (error instanceof LlmError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/generate
+ * Generates interview questions and study flashcards for a Kit based on its requirements, JD, and research.
+ */
+export async function generateKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    // 1. Fetch existing kit (ownership enforced at DB query level)
+    const kit = await findKitById(id, userId);
+    if (!kit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    // 2. Validate requirements exist
+    const requirements = kit.role?.requirements || [];
+    if (requirements.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not have any extracted requirements. Run /extract first.",
+        },
+      });
+      return;
+    }
+
+    // 3. Transition status to "generating"
+    await updateKitStatus(id, userId, "generating");
+
+    try {
+      // 4. Run generation service
+      const generationResult = await generationService.generateKitContent({
+        jd: kit.jd || "",
+        requirements,
+        companyBrief: kit.company_brief,
+        interviewResearch: kit.interview_research,
+        existingQuestions: kit.questions || [],
+        existingFlashcards: kit.flashcards || [],
+      });
+
+      // 5. Persist questions and flashcards with "completed" status
+      const updatedKit = await updateKitQuestionsAndFlashcards(
+        id,
+        userId,
+        generationResult.questions,
+        generationResult.flashcards,
+        "completed"
+      );
+
+      if (!updatedKit) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: "KIT_NOT_FOUND",
+            message: "Kit not found.",
+          },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        kit: toSafeKit(updatedKit),
+      });
+    } catch (genError: unknown) {
+      // Record failure status on Kit
+      const errMessage =
+        genError instanceof Error ? genError.message : "Generation failed";
+      await updateKitStatus(id, userId, "failed", errMessage);
+      throw genError;
+    }
   } catch (error: unknown) {
     if (error instanceof LlmError) {
       res.status(error.status).json({
