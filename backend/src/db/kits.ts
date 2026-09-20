@@ -167,3 +167,30 @@ export async function deleteKit(kitId: string, userId: string): Promise<boolean>
 
   return result.deletedCount === 1;
 }
+
+/**
+ * Updates extracted requirements for a Kit, strictly enforcing ownership at query level.
+ */
+export async function updateKitRequirements(
+  kitId: string,
+  userId: string,
+  requirements: IKitDocument["role"]["requirements"]
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: {
+        "role.requirements": requirements,
+        updatedAt: new Date(),
+      },
+    },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}

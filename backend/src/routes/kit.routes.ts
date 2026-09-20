@@ -5,6 +5,7 @@ import {
   getKitByIdHandler,
   updateKitHandler,
   deleteKitHandler,
+  extractRequirementsHandler,
 } from "../controllers/kit.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -18,3 +19,4 @@ kitRouter.get("/", listKitsHandler);
 kitRouter.get("/:id", getKitByIdHandler);
 kitRouter.patch("/:id", updateKitHandler);
 kitRouter.delete("/:id", deleteKitHandler);
+kitRouter.post("/:id/extract", extractRequirementsHandler);

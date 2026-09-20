@@ -19,6 +19,8 @@ export interface AppConfig {
   nodeEnv: "development" | "production" | "test";
   databaseUrl: string;
   sessionSecret: string;
+  llmApiKey: string;
+  geminiModel: string;
 }
 
 export function sanitizeDatabaseUrl(url?: string): string {
@@ -54,11 +56,19 @@ export function loadConfig(): AppConfig {
     );
   }
 
+  const llmApiKey = process.env.LLM_API_KEY?.trim() || "";
+  const geminiModel =
+    process.env.GEMINI_MODEL?.trim() ||
+    process.env.LLM_MODEL?.trim() ||
+    "gemini-2.5-flash";
+
   return {
     port: isNaN(port) ? 5000 : port,
     nodeEnv,
     databaseUrl,
     sessionSecret: sessionSecret || "trao-default-secret",
+    llmApiKey,
+    geminiModel,
   };
 }
 

@@ -5,6 +5,7 @@ import {
   listKitsByUser,
   updateKit,
   deleteKit,
+  updateKitRequirements,
 } from "../db/kits.js";
 import {
   toSafeKit,
@@ -17,6 +18,8 @@ import {
   validateDays,
   isValidObjectId,
 } from "../utils/validation.js";
+import { requirementExtractionService } from "../services/requirement-extraction.service.js";
+import { LlmError } from "../services/llm/types.js";
 
 /**
  * Helper to retrieve the authenticated user ID from the request session.
@@ -365,6 +368,105 @@ export async function deleteKitHandler(
       message: "Kit deleted successfully",
     });
   } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/extract
+ * Extracts and normalizes structured requirements from the Kit's stored Job Description.
+ */
+export async function extractRequirementsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    // 1. Fetch existing kit (ownership enforced at DB level)
+    const kit = await findKitById(id, userId);
+    if (!kit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    if (!kit.jd || !kit.jd.trim()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not contain a valid Job Description.",
+        },
+      });
+      return;
+    }
+
+    // 2. Extract and normalize requirements via extraction service
+    const existingRequirements = kit.role?.requirements || [];
+    const extractedRequirements = await requirementExtractionService.extractRequirements(
+      kit.jd,
+      existingRequirements
+    );
+
+    // 3. Persist normalized requirements into MongoDB
+    const updatedKit = await updateKitRequirements(id, userId, extractedRequirements);
+
+    if (!updatedKit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      kit: toSafeKit(updatedKit),
+      requirements: extractedRequirements,
+    });
+  } catch (error: unknown) {
+    if (error instanceof LlmError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
     next(error);
   }
 }
