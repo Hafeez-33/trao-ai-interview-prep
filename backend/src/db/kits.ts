@@ -195,29 +195,96 @@ export async function updateKitRequirements(
   return result;
 }
 
+import { CrawledPage } from "../services/crawler/types.js";
+import { ResearchResult } from "../services/research/types.js";
+
 /**
- * Updates crawled pages and researched timestamp for a Kit.
+ * Updates crawled pages, cached page contents, and researched timestamp for a Kit.
  */
 export async function updateKitCrawlResult(
   kitId: string,
   userId: string,
   pagesUsed: string[],
-  researchedAt: string
+  researchedAt: string,
+  crawledPages?: CrawledPage[]
 ): Promise<IKitDocument | null> {
   if (!isValidObjectId(kitId)) {
     return null;
   }
 
   const collection = getKitsCollection();
+  const setFields: Record<string, unknown> = {
+    "source.pages_used": pagesUsed,
+    "source.researched_at": researchedAt,
+    updatedAt: new Date(),
+  };
+
+  if (crawledPages) {
+    setFields["crawled_pages"] = crawledPages;
+  }
+
   const result = await collection.findOneAndUpdate(
     { _id: new ObjectId(kitId), userId },
     {
-      $set: {
-        "source.pages_used": pagesUsed,
-        "source.researched_at": researchedAt,
-        updatedAt: new Date(),
-      },
+      $set: setFields,
     },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
+
+/**
+ * Updates research results for a Kit, strictly enforcing ownership at query level
+ * and preserving user-edited brief per docs/STATE.md.
+ */
+export async function updateKitResearchResult(
+  kitId: string,
+  userId: string,
+  research: ResearchResult,
+  preserveEditedBrief = true
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+
+  const existing = await collection.findOne({
+    _id: new ObjectId(kitId),
+    userId,
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const updateFields: Record<string, unknown> = {
+    "source.researched_at": new Date().toISOString(),
+    "source.pages_used": research.sourcesUsed,
+    "interview_research": research.interviewResearch,
+    updatedAt: new Date(),
+  };
+
+  if (research.companyName && !existing.source?.company) {
+    updateFields["source.company"] = research.companyName;
+  }
+
+  // State preservation per docs/STATE.md:
+  // If user has edited the company brief, preserve summary and what_they_do
+  const isEdited = existing.company_brief?.is_edited === true;
+  if (!preserveEditedBrief || !isEdited) {
+    updateFields["company_brief.summary"] = research.companyBrief.summary;
+    updateFields["company_brief.what_they_do"] = research.companyBrief.what_they_do;
+    updateFields["company_brief.sources"] = research.companyBrief.sources;
+  } else {
+    // Preserve existing summary and what_they_do, update verified sources
+    updateFields["company_brief.sources"] = research.companyBrief.sources;
+  }
+
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    { $set: updateFields },
     { returnDocument: "after" }
   );
 

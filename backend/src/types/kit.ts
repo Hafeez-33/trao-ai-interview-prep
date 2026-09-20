@@ -28,10 +28,14 @@ export interface KitSource {
   pages_used: string[];
 }
 
+import { CrawledPage } from "../services/crawler/types.js";
+import { InterviewResearch } from "../services/research/types.js";
+
 export interface KitCompanyBrief {
   summary: string;
   what_they_do: string;
   sources: string[];
+  is_edited?: boolean;
 }
 
 export interface KitRequirement {
@@ -111,6 +115,10 @@ export interface IKitDocument {
   flashcards: KitFlashcard[];
   schedule: KitSchedule;
   coverage: KitCoverage;
+
+  // Internal server-side cached crawler data & research
+  crawled_pages?: CrawledPage[];
+  interview_research?: InterviewResearch;
 
   // Timestamps
   createdAt: Date;

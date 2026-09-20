@@ -7,6 +7,7 @@ import {
   deleteKitHandler,
   extractRequirementsHandler,
   crawlCompanyHandler,
+  researchCompanyHandler,
 } from "../controllers/kit.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -22,3 +23,4 @@ kitRouter.patch("/:id", updateKitHandler);
 kitRouter.delete("/:id", deleteKitHandler);
 kitRouter.post("/:id/extract", extractRequirementsHandler);
 kitRouter.post("/:id/crawl", crawlCompanyHandler);
+kitRouter.post("/:id/research", researchCompanyHandler);

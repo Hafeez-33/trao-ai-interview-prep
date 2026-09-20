@@ -20,29 +20,49 @@ export class MockLlmProvider implements ILlmProvider {
   constructor(defaultResponse?: string | MockResponseHandler) {
     this.responseHandler =
       defaultResponse ||
-      JSON.stringify({
-        requirements: [
-          {
-            text: "Proficiency in Node.js and TypeScript",
-            kind: "technical",
-            priority: "must",
-          },
-          {
-            text: "Experience designing distributed systems",
-            kind: "technical",
-            priority: "must",
-          },
-          {
-            text: "Strong cross-functional communication",
-            kind: "behavioural",
-            priority: "nice",
-          },
-          {
-            text: "Knowledge of financial compliance",
-            kind: "domain",
-            priority: "nice",
-          },
-        ],
+      ((prompt: string, options?: LlmCompletionOptions) => {
+        if (
+          options?.systemPrompt?.includes("company and interview research") ||
+          prompt.includes("<source_page")
+        ) {
+          return JSON.stringify({
+            company_name: "Example Corp",
+            company_brief: {
+              summary: "Example Corp develops cloud-native analytics platforms.",
+              what_they_do: "They provide high-performance data processing software.",
+              source_urls: ["http://127.0.0.1:64159/about"],
+            },
+            interview_research: {
+              availability: "unavailable",
+              summary: null,
+              source_urls: [],
+            },
+          });
+        }
+        return JSON.stringify({
+          requirements: [
+            {
+              text: "Proficiency in Node.js and TypeScript",
+              kind: "technical",
+              priority: "must",
+            },
+            {
+              text: "Experience designing distributed systems",
+              kind: "technical",
+              priority: "must",
+            },
+            {
+              text: "Strong cross-functional communication",
+              kind: "behavioural",
+              priority: "nice",
+            },
+            {
+              text: "Knowledge of financial compliance",
+              kind: "domain",
+              priority: "nice",
+            },
+          ],
+        });
       });
   }
 

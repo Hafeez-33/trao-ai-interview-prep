@@ -7,6 +7,7 @@ import {
   deleteKit,
   updateKitRequirements,
   updateKitCrawlResult,
+  updateKitResearchResult,
 } from "../db/kits.js";
 import {
   toSafeKit,
@@ -22,6 +23,7 @@ import {
 import { requirementExtractionService } from "../services/requirement-extraction.service.js";
 import { LlmError } from "../services/llm/types.js";
 import { crawlerService, CrawlerError } from "../services/crawler/index.js";
+import { researchService } from "../services/research/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -544,12 +546,13 @@ export async function crawlCompanyHandler(
       allowLocalTestUrls,
     });
 
-    // 4. Update Kit in MongoDB with researched pages and timestamp
+    // 4. Update Kit in MongoDB with researched pages, cached page contents, and timestamp
     const updatedKit = await updateKitCrawlResult(
       id,
       userId,
       crawlResult.pagesUsed,
-      crawlResult.stats.endTime
+      crawlResult.stats.endTime,
+      crawlResult.pages
     );
 
     res.status(200).json({
@@ -567,6 +570,131 @@ export async function crawlCompanyHandler(
     });
   } catch (error: unknown) {
     if (error instanceof CrawlerError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/research
+ * Runs factual company and interview research based strictly on server-side cached crawler pages.
+ * Client-submitted pages in req.body are strictly ignored (Correction 1).
+ */
+export async function researchCompanyHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    // 1. Fetch existing kit (ownership enforced at DB query level)
+    const kit = await findKitById(id, userId);
+    if (!kit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    const companyUrl = kit.source?.company_url?.trim();
+    if (!companyUrl) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not have a company_url configured for research.",
+        },
+      });
+      return;
+    }
+
+    // 2. Consume ONLY server-side cached crawler pages (Correction 1)
+    const crawledPages = kit.crawled_pages || [];
+    if (crawledPages.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "NO_CRAWL_DATA",
+          message: "No crawled website pages found for this Kit. Run /crawl before executing research.",
+        },
+      });
+      return;
+    }
+
+    // 3. Execute research service
+    const researchResult = await researchService.performResearch({
+      jd: kit.jd || "",
+      companyUrl,
+      pages: crawledPages,
+      companyHint: kit.source?.company || "",
+    });
+
+    // 4. Update Kit in MongoDB with ownership and state preservation (Correction 2)
+    const updatedKit = await updateKitResearchResult(
+      id,
+      userId,
+      researchResult,
+      true // preserveEditedBrief
+    );
+
+    if (!updatedKit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      kit: toSafeKit(updatedKit),
+      research: {
+        company_brief: updatedKit.company_brief,
+        interview_research: researchResult.interviewResearch,
+        sources_used: researchResult.sourcesUsed,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof LlmError) {
       res.status(error.status).json({
         success: false,
         error: {
