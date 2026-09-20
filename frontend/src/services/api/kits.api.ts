@@ -228,6 +228,15 @@ export const kitsApi = {
       method: "POST",
     });
   },
+
+  /**
+   * Deletes a prep kit owned by the authenticated user.
+   */
+  async deleteKit(id: string): Promise<{ message: string }> {
+    return apiClient<{ message: string }>(`/kits/${id}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 export interface RegenerateScope {

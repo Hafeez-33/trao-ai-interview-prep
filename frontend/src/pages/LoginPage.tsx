@@ -23,8 +23,8 @@ export const LoginPage: React.FC = () => {
 
     try {
       await authApi.login({ email, password });
-      // Redirect to home or dashboard upon successful authentication
-      navigate("/");
+      // Redirect to dashboard upon successful authentication
+      navigate("/dashboard");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to sign in. Please verify your credentials.";

@@ -1,7 +1,25 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { authApi } from "@/services/api/auth.api.js";
 
 export const HomePage: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    authApi
+      .getMe()
+      .then(() => {
+        if (isMounted) setIsAuthenticated(true);
+      })
+      .catch(() => {
+        if (isMounted) setIsAuthenticated(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "var(--space-8) 0" }}>
       {/* Hero Section */}
@@ -43,13 +61,26 @@ export const HomePage: React.FC = () => {
           highly tailored interview preparation kit with verified research,
           categorized questions, flashcards, and a day-by-day study schedule.
         </p>
-        <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center" }}>
-          <Link to="/kits/new" className="btn btn-primary" style={{ padding: "var(--space-3) var(--space-6)" }}>
-            Create Your First Kit
-          </Link>
-          <Link to="/login" className="btn btn-secondary" style={{ padding: "var(--space-3) var(--space-6)" }}>
-            Sign In to Existing Account
-          </Link>
+        <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center", flexWrap: "wrap" }}>
+          {isAuthenticated ? (
+            <>
+              <Link to="/dashboard" id="hero-dashboard-cta" className="btn btn-primary" style={{ padding: "var(--space-3) var(--space-6)" }}>
+                Go to Dashboard
+              </Link>
+              <Link to="/kits/new" className="btn btn-secondary" style={{ padding: "var(--space-3) var(--space-6)" }}>
+                + Create New Kit
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/kits/new" className="btn btn-primary" style={{ padding: "var(--space-3) var(--space-6)" }}>
+                Create Your First Kit
+              </Link>
+              <Link to="/login" className="btn btn-secondary" style={{ padding: "var(--space-3) var(--space-6)" }}>
+                Sign In to Existing Account
+              </Link>
+            </>
+          )}
         </div>
       </section>
 

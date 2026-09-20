@@ -28,8 +28,8 @@ export const RegisterPage: React.FC = () => {
 
     try {
       await authApi.register({ email, password });
-      // Redirect to home or dashboard upon successful registration
-      navigate("/");
+      // Redirect to dashboard upon successful registration
+      navigate("/dashboard");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Registration failed. Please check your details.";

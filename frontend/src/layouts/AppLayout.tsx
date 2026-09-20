@@ -1,10 +1,40 @@
-import React from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { authApi } from "@/services/api/auth.api.js";
+import { AuthUser } from "@/types/api.js";
 
 export const AppLayout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   const isActive = (path: string) => location.pathname === path;
+
+  useEffect(() => {
+    let isMounted = true;
+    authApi
+      .getMe()
+      .then((res) => {
+        if (isMounted) setUser(res.user);
+      })
+      .catch(() => {
+        if (isMounted) setUser(null);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // continue navigation
+    } finally {
+      setUser(null);
+      navigate("/login");
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -87,40 +117,97 @@ export const AppLayout: React.FC = () => {
             >
               Home
             </Link>
-            <Link
-              to="/kits/new"
-              className="nav-link"
-              style={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 500,
-                color: isActive("/kits/new") ? "var(--color-primary-light)" : "var(--text-secondary)",
-                textDecoration: "none",
-              }}
-            >
-              Create Kit
-            </Link>
-            <Link
-              to="/login"
-              className="nav-link"
-              style={{
-                fontSize: "var(--text-sm)",
-                fontWeight: 500,
-                color: isActive("/login") ? "var(--color-primary-light)" : "var(--text-secondary)",
-                textDecoration: "none",
-              }}
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="btn btn-primary"
-              style={{
-                fontSize: "var(--text-xs)",
-                padding: "var(--space-2) var(--space-3)",
-              }}
-            >
-              Get Started
-            </Link>
+
+            {user ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  id="nav-dashboard-link"
+                  className="nav-link"
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 500,
+                    color: isActive("/dashboard") ? "var(--color-primary-light)" : "var(--text-secondary)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/kits/new"
+                  className="nav-link"
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 500,
+                    color: isActive("/kits/new") ? "var(--color-primary-light)" : "var(--text-secondary)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Create Kit
+                </Link>
+                <span
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    color: "var(--text-muted)",
+                    padding: "2px 8px",
+                    borderRadius: "var(--radius-full)",
+                    backgroundColor: "var(--bg-surface-raised)",
+                  }}
+                  title={user.email}
+                >
+                  {user.email}
+                </span>
+                <button
+                  type="button"
+                  id="nav-logout-btn"
+                  onClick={handleLogout}
+                  className="btn btn-secondary"
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    padding: "var(--space-1) var(--space-3)",
+                  }}
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/kits/new"
+                  className="nav-link"
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 500,
+                    color: isActive("/kits/new") ? "var(--color-primary-light)" : "var(--text-secondary)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Create Kit
+                </Link>
+                <Link
+                  to="/login"
+                  className="nav-link"
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 500,
+                    color: isActive("/login") ? "var(--color-primary-light)" : "var(--text-secondary)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn btn-primary"
+                  style={{
+                    fontSize: "var(--text-xs)",
+                    padding: "var(--space-2) var(--space-3)",
+                  }}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

@@ -4,6 +4,7 @@ import { HomePage } from "@/pages/HomePage.js";
 import { LoginPage } from "@/pages/LoginPage.js";
 import { RegisterPage } from "@/pages/RegisterPage.js";
 import { CreateKitPage } from "@/pages/CreateKitPage.js";
+import { DashboardPage } from "@/pages/DashboardPage.js";
 import { GenerationPage } from "@/pages/GenerationPage.js";
 import { KitPage } from "@/pages/KitPage.js";
 import { KitBuilderPage } from "@/pages/KitBuilderPage.js";
@@ -12,7 +13,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage.js";
 
 /**
  * Application routes.
- * Phase 16 configures /, /login, /register, /kits/new, /kits/:id/generate, /kits/:id, /kits/:id/builder, /kits/:id/practice, and * (404).
+ * Phase 17 configures /, /login, /register, /dashboard, /kits/new, /kits/:id/generate, /kits/:id, /kits/:id/builder, /kits/:id/practice, and * (404).
  */
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: "register",
         element: <RegisterPage />,
+      },
+      {
+        path: "dashboard",
+        element: <DashboardPage />,
       },
       {
         path: "kits/new",

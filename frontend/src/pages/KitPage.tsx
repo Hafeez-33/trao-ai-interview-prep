@@ -62,9 +62,12 @@ export const KitPage: React.FC = () => {
           title="Kit Unavailable"
           message={error || "The requested interview kit could not be loaded."}
         />
-        <div style={{ marginTop: "var(--space-4)", textAlign: "center" }}>
+        <div style={{ marginTop: "var(--space-4)", textAlign: "center", display: "flex", gap: "var(--space-3)", justifyContent: "center" }}>
+          <Link to="/dashboard" className="btn btn-primary">
+            ← Return to Dashboard
+          </Link>
           <Link to="/" className="btn btn-secondary">
-            ← Return to Home
+            Home
           </Link>
         </div>
       </div>
@@ -117,7 +120,14 @@ export const KitPage: React.FC = () => {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
+            <Link
+              to="/dashboard"
+              className="btn btn-secondary"
+              style={{ fontSize: "var(--text-xs)" }}
+            >
+              ← Dashboard
+            </Link>
             <Link
               to={`/kits/${id}/practice`}
               className="btn btn-primary"
