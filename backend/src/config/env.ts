@@ -18,6 +18,7 @@ export interface AppConfig {
   port: number;
   nodeEnv: "development" | "production" | "test";
   databaseUrl: string;
+  sessionSecret: string;
 }
 
 export function sanitizeDatabaseUrl(url?: string): string {
@@ -41,11 +42,23 @@ export function loadConfig(): AppConfig {
 
   const port = parseInt(process.env.PORT || "5000", 10);
   const nodeEnv = (process.env.NODE_ENV || "development") as AppConfig["nodeEnv"];
+  
+  // Load session secret, providing a fallback default in local development
+  const sessionSecret =
+    process.env.SESSION_SECRET?.trim() ||
+    (nodeEnv === "development" ? "trao-dev-session-secret-change-in-prod" : "");
+
+  if (!sessionSecret && nodeEnv === "production") {
+    throw new Error(
+      "Configuration error: Missing required environment variable 'SESSION_SECRET' in production."
+    );
+  }
 
   return {
     port: isNaN(port) ? 5000 : port,
     nodeEnv,
     databaseUrl,
+    sessionSecret: sessionSecret || "trao-default-secret",
   };
 }
 

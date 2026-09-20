@@ -1,8 +1,31 @@
 import { MongoClient, Db } from "mongodb";
-import { config, sanitizeDatabaseUrl } from "../config/env.js";
+import { config } from "../config/env.js";
 
+let clientPromise: Promise<MongoClient> | null = null;
 let client: MongoClient | null = null;
 let db: Db | null = null;
+
+/**
+ * Returns a Promise that resolves to the singleton MongoClient instance.
+ */
+export function getClientPromise(): Promise<MongoClient> {
+  if (clientPromise) {
+    return clientPromise;
+  }
+
+  const mongoClient = new MongoClient(config.databaseUrl, {
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+  });
+
+  clientPromise = mongoClient.connect().then((c) => {
+    client = c;
+    db = c.db();
+    return c;
+  });
+
+  return clientPromise;
+}
 
 /**
  * Connect to MongoDB using the singleton MongoClient.
@@ -14,25 +37,22 @@ export async function connectDatabase(): Promise<Db> {
   }
 
   try {
-    const mongoClient = new MongoClient(config.databaseUrl, {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
-    });
-
-    await mongoClient.connect();
-    
-    // Use the default database specified in the connection string (or admin for ping)
-    const database = mongoClient.db();
-    
-    // Verify connection by issuing a ping command
-    await database.command({ ping: 1 });
-
+    const mongoClient = await getClientPromise();
     client = mongoClient;
-    db = database;
+    db = mongoClient.db();
+
+    // Verify connection by issuing a ping command
+    await db.command({ ping: 1 });
 
     return db;
   } catch (error) {
-    const rawMessage = error instanceof Error ? error.message : "Unknown database connection failure";
+    // Reset cached promise so subsequent attempts can retry
+    clientPromise = null;
+    client = null;
+    db = null;
+
+    const rawMessage =
+      error instanceof Error ? error.message : "Unknown database connection failure";
     // Ensure raw error message does not contain credentials
     const safeMessage = rawMessage.replace(/\/\/([^:]+):([^@]+)@/g, "/***@");
     throw new Error(`Failed to connect to MongoDB: ${safeMessage}`);
@@ -83,6 +103,7 @@ export async function pingDatabase(): Promise<boolean> {
 export async function closeDatabase(): Promise<void> {
   if (client) {
     await client.close();
+    clientPromise = null;
     client = null;
     db = null;
   }

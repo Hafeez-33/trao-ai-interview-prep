@@ -1,6 +1,6 @@
 import { app } from "./app.js";
 import { config } from "./config/env.js";
-import { connectDatabase, closeDatabase } from "./db/connection.js";
+import { connectDatabase, closeDatabase, ensureUserIndexes } from "./db/index.js";
 import type { Server } from "http";
 
 let server: Server | null = null;
@@ -12,7 +12,11 @@ async function startServer(): Promise<void> {
     await connectDatabase();
     console.log("[server] Database connection established and verified.");
 
-    // 2. Start HTTP Server
+    // 2. Initialize and ensure required database indexes
+    await ensureUserIndexes();
+    console.log("[server] Database indexes verified.");
+
+    // 3. Start HTTP Server
     server = app.listen(config.port, () => {
       console.log(`[server] Trao Backend running on port ${config.port} (${config.nodeEnv})`);
     });
