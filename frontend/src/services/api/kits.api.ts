@@ -181,4 +181,25 @@ export const kitsApi = {
       method: "POST",
     });
   },
+
+  /**
+   * Triggers controlled regeneration preserving user edits, custom items, and pinned questions.
+   */
+  async regenerateKit(id: string, scope?: RegenerateScope): Promise<RegenerateResponse> {
+    return apiClient<RegenerateResponse>(`/kits/${id}/regenerate`, {
+      method: "POST",
+      body: scope || {},
+      timeoutMs: 60000,
+    });
+  },
 };
+
+export interface RegenerateScope {
+  target?: "questions" | "flashcards" | "company_brief" | "all";
+  category?: "technical" | "behavioural" | "system-design" | "company-fit";
+}
+
+export interface RegenerateResponse {
+  success: boolean;
+  kit: SafeKit;
+}

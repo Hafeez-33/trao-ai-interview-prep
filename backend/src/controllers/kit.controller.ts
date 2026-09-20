@@ -32,6 +32,7 @@ import { generationService } from "../services/generation/index.js";
 import { coverageService } from "../services/coverage/index.js";
 import { scheduleService, ScheduleError } from "../services/schedule/index.js";
 import { kitValidationService } from "../services/validation/index.js";
+import { regenerationService, RegenerationError } from "../services/regeneration/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -1176,6 +1177,65 @@ export async function validateKitHandler(
       warnings: validationResult.warnings,
     });
   } catch (error: unknown) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/regenerate
+ * Controlled regeneration while preserving all user-owned content.
+ */
+export async function regenerateKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const { target, category } = req.body || {};
+
+    const result = await regenerationService.regenerate(id, userId, {
+      target,
+      category,
+    });
+
+    res.status(200).json(result);
+  } catch (error: unknown) {
+    if (error instanceof RegenerationError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.details ? { details: error.details } : {}),
+        },
+      });
+      return;
+    }
     next(error);
   }
 }

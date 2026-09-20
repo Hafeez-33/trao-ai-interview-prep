@@ -15,6 +15,7 @@ import { SaveStatus, SaveState } from "@/components/builder/SaveStatus.js";
 import { RequirementsEditor } from "@/components/builder/RequirementsEditor.js";
 import { QuestionsEditor } from "@/components/builder/QuestionsEditor.js";
 import { FlashcardsEditor } from "@/components/builder/FlashcardsEditor.js";
+import { RegenerationModal } from "@/components/builder/RegenerationModal.js";
 
 interface StoredBuilderState {
   requirements: KitRequirement[];
@@ -41,6 +42,7 @@ export const KitBuilderPage: React.FC = () => {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | undefined>(undefined);
   const [clientValidationError, setClientValidationError] = useState<string | null>(null);
+  const [isRegenModalOpen, setIsRegenModalOpen] = useState(false);
 
   const initialLoadedRef = useRef(false);
 
@@ -237,6 +239,25 @@ export const KitBuilderPage: React.FC = () => {
     }
   };
 
+  const handleRegenSuccess = (updatedKit: SafeKit) => {
+    setKit(updatedKit);
+    setQuestions(updatedKit.questions || []);
+    setFlashcards(updatedKit.flashcards || []);
+    setRequirements(updatedKit.role?.requirements || []);
+    setIsDirty(false);
+    setSaveState("saved");
+
+    if (storageKey) {
+      const storedPayload: StoredBuilderState = {
+        requirements: updatedKit.role?.requirements || [],
+        questions: updatedKit.questions || [],
+        flashcards: updatedKit.flashcards || [],
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(storageKey, JSON.stringify(storedPayload));
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: "var(--space-16) 0" }}>
@@ -329,6 +350,16 @@ export const KitBuilderPage: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => setIsRegenModalOpen(true)}
+              disabled={saveState === "saving"}
+              className="btn btn-secondary"
+              style={{ padding: "var(--space-2) var(--space-4)", fontSize: "var(--text-sm)" }}
+            >
+              ⟳ Regenerate Content
+            </button>
+
+            <button
+              type="button"
               onClick={handleSaveChanges}
               disabled={saveState === "saving" || !isDirty}
               className="btn btn-primary"
@@ -403,6 +434,16 @@ export const KitBuilderPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Regeneration Modal */}
+      {id && (
+        <RegenerationModal
+          kitId={id}
+          isOpen={isRegenModalOpen}
+          onClose={() => setIsRegenModalOpen(false)}
+          onSuccess={handleRegenSuccess}
+        />
+      )}
     </div>
   );
 };

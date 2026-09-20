@@ -434,3 +434,94 @@ export async function updateKitSchedule(
 
   return result;
 }
+
+import { KitCompanyBrief } from "../types/kit.js";
+
+/**
+ * Updates full kit state following a successful regeneration.
+ * Enforces ownership at query level and updates timestamp.
+ */
+export async function updateKitRegenerationResult(
+  kitId: string,
+  userId: string,
+  data: {
+    questions: InternalKitQuestion[];
+    flashcards: InternalKitFlashcard[];
+    coverage: KitCoverage;
+    schedule: KitSchedule;
+    company_brief?: KitCompanyBrief;
+    status: GenerationStatus;
+  }
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const setFields: Record<string, unknown> = {
+    questions: data.questions,
+    flashcards: data.flashcards,
+    "coverage.uncovered_requirement_ids": data.coverage.uncovered_requirement_ids,
+    "coverage.passes": data.coverage.passes,
+    "schedule.days_available": data.schedule.days_available,
+    "schedule.days": data.schedule.days,
+    status: data.status,
+    updatedAt: new Date(),
+  };
+
+  if (data.company_brief) {
+    setFields["company_brief"] = data.company_brief;
+  }
+
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: setFields,
+      $unset: { errorMessage: "" },
+    },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
+
+/**
+ * Restores previous valid kit state on failed regeneration.
+ * Sets status to 'failed' and records errorMessage.
+ */
+export async function restoreKitOnFailedRegeneration(
+  kitId: string,
+  userId: string,
+  previousState: {
+    questions: InternalKitQuestion[];
+    flashcards: InternalKitFlashcard[];
+    coverage: KitCoverage;
+    schedule: KitSchedule;
+    company_brief: KitCompanyBrief;
+  },
+  errorMessage: string
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: {
+        questions: previousState.questions,
+        flashcards: previousState.flashcards,
+        coverage: previousState.coverage,
+        schedule: previousState.schedule,
+        company_brief: previousState.company_brief,
+        status: "failed",
+        errorMessage,
+        updatedAt: new Date(),
+      },
+    },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
