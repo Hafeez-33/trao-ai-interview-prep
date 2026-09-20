@@ -7,6 +7,7 @@ import {
   InternalKitQuestion,
   InternalKitFlashcard,
   GenerationStatus,
+  KitCoverage,
 } from "../types/kit.js";
 import { isValidObjectId } from "../utils/validation.js";
 
@@ -359,6 +360,42 @@ export async function updateKitStatus(
   const result = await collection.findOneAndUpdate(
     { _id: new ObjectId(kitId), userId },
     updateDoc,
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
+
+/**
+ * Updates questions, coverage, and status for a Kit.
+ * Strictly enforces query-level ownership and records updated timestamp.
+ */
+export async function updateKitCoverage(
+  kitId: string,
+  userId: string,
+  questions: InternalKitQuestion[],
+  coverage: KitCoverage,
+  status: GenerationStatus = "completed"
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: {
+        questions,
+        "coverage.uncovered_requirement_ids": coverage.uncovered_requirement_ids,
+        "coverage.passes": coverage.passes,
+        status,
+        updatedAt: new Date(),
+      },
+      $unset: {
+        errorMessage: "",
+      },
+    },
     { returnDocument: "after" }
   );
 

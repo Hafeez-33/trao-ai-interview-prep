@@ -16,8 +16,11 @@ dist/
 build/
 
 # Testing and Coverage
-coverage/
+/coverage/
+backend/coverage/
+frontend/coverage/
 .nyc_output/
+!backend/src/services/coverage/
 
 # Logs
 logs/

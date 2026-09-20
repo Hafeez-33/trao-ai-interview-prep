@@ -10,6 +10,7 @@ import {
   updateKitResearchResult,
   updateKitQuestionsAndFlashcards,
   updateKitStatus,
+  updateKitCoverage,
 } from "../db/kits.js";
 import {
   toSafeKit,
@@ -27,6 +28,7 @@ import { LlmError } from "../services/llm/types.js";
 import { crawlerService, CrawlerError } from "../services/crawler/index.js";
 import { researchService } from "../services/research/index.js";
 import { generationService } from "../services/generation/index.js";
+import { coverageService } from "../services/coverage/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -817,6 +819,149 @@ export async function generateKitHandler(
       await updateKitStatus(id, userId, "failed", errMessage);
       throw genError;
     }
+  } catch (error: unknown) {
+    if (error instanceof LlmError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/coverage
+ * Deterministically verifies requirement coverage and executes targeted second-pass question generation for any gaps.
+ */
+export async function coverageKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    // 1. Fetch existing kit (ownership enforced at DB query level)
+    const kit = await findKitById(id, userId);
+    if (!kit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    // 2. Validate requirements exist
+    const requirements = kit.role?.requirements || [];
+    if (requirements.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not have any extracted requirements. Run /extract first.",
+        },
+      });
+      return;
+    }
+
+    // 3. Deterministic Pass 1 check
+    const existingQuestions = kit.questions || [];
+    const pass1 = coverageService.calculateCoverage(requirements, existingQuestions, 1);
+
+    if (pass1.uncovered_requirement_ids.length === 0) {
+      // All requirements covered on Pass 1! Do NOT call LLM.
+      const updatedKit = await updateKitCoverage(
+        id,
+        userId,
+        existingQuestions,
+        {
+          uncovered_requirement_ids: [],
+          passes: 1,
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        kit: toSafeKit(updatedKit || kit),
+        coverage: {
+          uncovered_requirement_ids: [],
+          passes: 1,
+        },
+      });
+      return;
+    }
+
+    // 4. Requirements uncovered -> run targeted second-pass generation
+    const secondPassResult = await coverageService.runSecondPass({
+      jd: kit.jd || "",
+      requirements,
+      existingQuestions,
+      companyBrief: kit.company_brief,
+      interviewResearch: kit.interview_research,
+    });
+
+    // 5. Persist final questions and coverage (passes = 2)
+    const updatedKit = await updateKitCoverage(
+      id,
+      userId,
+      secondPassResult.questions,
+      {
+        uncovered_requirement_ids: secondPassResult.uncovered_requirement_ids,
+        passes: 2,
+      }
+    );
+
+    if (!updatedKit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      kit: toSafeKit(updatedKit),
+      coverage: {
+        uncovered_requirement_ids: secondPassResult.uncovered_requirement_ids,
+        passes: 2,
+      },
+      generated_count: secondPassResult.generated_count,
+    });
   } catch (error: unknown) {
     if (error instanceof LlmError) {
       res.status(error.status).json({

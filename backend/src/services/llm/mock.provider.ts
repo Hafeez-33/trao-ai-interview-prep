@@ -41,6 +41,22 @@ export class MockLlmProvider implements ILlmProvider {
         }
 
         if (
+          options?.systemPrompt?.includes("TARGETED interview questions") ||
+          prompt.includes("<uncovered_requirements>")
+        ) {
+          const matches = [...prompt.matchAll(/ID:\s*([a-zA-Z0-9_-]+)/g)];
+          const ids = Array.from(new Set(matches.map((m) => m[1])));
+          const questions = ids.map((id) => ({
+            requirement_ids: [id],
+            category: "technical",
+            prompt: `Targeted interview question covering requirement ${id}`,
+            answer_outline: `Technical assessment and trade-offs for ${id}.`,
+            difficulty: 2,
+          }));
+          return JSON.stringify({ questions });
+        }
+
+        if (
           options?.systemPrompt?.includes("interview preparation coach") ||
           prompt.includes("<requirements>")
         ) {
