@@ -88,6 +88,18 @@ export const AppLayout: React.FC = () => {
               Home
             </Link>
             <Link
+              to="/kits/new"
+              className="nav-link"
+              style={{
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                color: isActive("/kits/new") ? "var(--color-primary-light)" : "var(--text-secondary)",
+                textDecoration: "none",
+              }}
+            >
+              Create Kit
+            </Link>
+            <Link
               to="/login"
               className="nav-link"
               style={{

@@ -44,7 +44,7 @@ export const HomePage: React.FC = () => {
           categorized questions, flashcards, and a day-by-day study schedule.
         </p>
         <div style={{ display: "flex", gap: "var(--space-4)", justifyContent: "center" }}>
-          <Link to="/register" className="btn btn-primary" style={{ padding: "var(--space-3) var(--space-6)" }}>
+          <Link to="/kits/new" className="btn btn-primary" style={{ padding: "var(--space-3) var(--space-6)" }}>
             Create Your First Kit
           </Link>
           <Link to="/login" className="btn btn-secondary" style={{ padding: "var(--space-3) var(--space-6)" }}>
