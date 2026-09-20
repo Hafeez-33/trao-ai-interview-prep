@@ -6,6 +6,7 @@ import {
   updateKit,
   deleteKit,
   updateKitRequirements,
+  updateKitCrawlResult,
 } from "../db/kits.js";
 import {
   toSafeKit,
@@ -20,6 +21,8 @@ import {
 } from "../utils/validation.js";
 import { requirementExtractionService } from "../services/requirement-extraction.service.js";
 import { LlmError } from "../services/llm/types.js";
+import { crawlerService, CrawlerError } from "../services/crawler/index.js";
+import { config } from "../config/env.js";
 
 /**
  * Helper to retrieve the authenticated user ID from the request session.
@@ -458,6 +461,112 @@ export async function extractRequirementsHandler(
     });
   } catch (error: unknown) {
     if (error instanceof LlmError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/crawl
+ * Runs the SSRF-safe, bounded web crawler against the Kit's company_url.
+ */
+export async function crawlCompanyHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    // 1. Fetch kit and verify ownership
+    const kit = await findKitById(id, userId);
+    if (!kit) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    const companyUrl = kit.source?.company_url?.trim();
+    if (!companyUrl) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Kit does not have a company_url configured for crawling.",
+        },
+      });
+      return;
+    }
+
+    // 2. Determine local test URL permission
+    const allowLocalTestUrls =
+      config.nodeEnv === "test" ||
+      process.env.ALLOW_LOCAL_TEST_URLS === "true";
+
+    // 3. Execute crawler
+    const crawlResult = await crawlerService.crawl(companyUrl, {
+      allowLocalTestUrls,
+    });
+
+    // 4. Update Kit in MongoDB with researched pages and timestamp
+    const updatedKit = await updateKitCrawlResult(
+      id,
+      userId,
+      crawlResult.pagesUsed,
+      crawlResult.stats.endTime
+    );
+
+    res.status(200).json({
+      success: true,
+      kit: toSafeKit(updatedKit || kit),
+      crawl: {
+        startUrl: crawlResult.startUrl,
+        domain: crawlResult.domain,
+        pages_crawled: crawlResult.pages.length,
+        pages: crawlResult.pages,
+        pages_used: crawlResult.pagesUsed,
+        skipped: crawlResult.skipped,
+        stats: crawlResult.stats,
+      },
+    });
+  } catch (error: unknown) {
+    if (error instanceof CrawlerError) {
       res.status(error.status).json({
         success: false,
         error: {

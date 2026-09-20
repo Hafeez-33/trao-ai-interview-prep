@@ -194,3 +194,32 @@ export async function updateKitRequirements(
 
   return result;
 }
+
+/**
+ * Updates crawled pages and researched timestamp for a Kit.
+ */
+export async function updateKitCrawlResult(
+  kitId: string,
+  userId: string,
+  pagesUsed: string[],
+  researchedAt: string
+): Promise<IKitDocument | null> {
+  if (!isValidObjectId(kitId)) {
+    return null;
+  }
+
+  const collection = getKitsCollection();
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(kitId), userId },
+    {
+      $set: {
+        "source.pages_used": pagesUsed,
+        "source.researched_at": researchedAt,
+        updatedAt: new Date(),
+      },
+    },
+    { returnDocument: "after" }
+  );
+
+  return result;
+}
