@@ -1,0 +1,9 @@
+{
+  "name": "trao-ai-interview-prep",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evaluate": "npm --prefix backend run evaluate --"
+  }
+}

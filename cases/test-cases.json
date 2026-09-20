@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "id": "case-01-backend-engineer",
+      "company": "PostHog",
+      "company_url": "https://posthog.com",
+      "role": "Senior Backend Engineer",
+      "location": "Remote, Global",
+      "jd": "We are looking for a Senior Backend Engineer proficient in Node.js, TypeScript, and MongoDB. Must have experience with distributed systems, high-throughput message queues (Kafka or RabbitMQ), and microservices architecture. Nice to have experience with Kubernetes and GraphQL. Responsibilities include building scalable APIs, optimizing database queries, and collaborating with cross-functional teams.",
+      "days": 5
+    },
+    {
+      "id": "case-02-frontend-developer",
+      "company": "Linear",
+      "company_url": "https://linear.app",
+      "role": "Staff Frontend Developer",
+      "location": "San Francisco, CA",
+      "jd": "Linear is hiring a Staff Frontend Developer to lead web application architecture. Must be an expert in React, TypeScript, state management, and modern CSS layout techniques. Must have experience optimizing performance, web vitals, and accessibility (WCAG 2.1). Nice to have experience with WebSockets and Electron.",
+      "days": 3
+    }
+  ]
+}

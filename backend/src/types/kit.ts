@@ -264,3 +264,41 @@ export function toSafeKitSummary(doc: IKitDocument): SafeKitSummary {
     createdAt: doc.createdAt.toISOString(),
   };
 }
+
+// ============================================================================
+// Appendix B Batch Evaluator Contract
+// ============================================================================
+
+export interface BatchCaseInput {
+  id: string;
+  jd: string;
+  company_url: string;
+  days: number;
+}
+
+export interface BatchKitError {
+  code: string;
+  message: string;
+}
+
+export interface BatchKitEntryOk {
+  id: string;
+  status: "ok";
+  kit: KitStructure;
+  error: null;
+}
+
+export interface BatchKitEntryFailed {
+  id: string;
+  status: "failed";
+  kit: null;
+  error: BatchKitError;
+}
+
+export type BatchKitEntry = BatchKitEntryOk | BatchKitEntryFailed;
+
+export interface BatchOutputStructure {
+  version: "1.0";
+  generated_at: string; // ISO 8601 timestamp
+  kits: BatchKitEntry[];
+}
