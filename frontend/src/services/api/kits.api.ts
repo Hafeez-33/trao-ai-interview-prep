@@ -7,6 +7,7 @@ import {
   KitSchedule,
   UpdateKitParams,
 } from "@/types/kit.js";
+import type { PracticeConfidenceLevel, PracticeResponse } from "@/types/practice.js";
 
 export interface CreateKitParams {
   jd: string;
@@ -190,6 +191,41 @@ export const kitsApi = {
       method: "POST",
       body: scope || {},
       timeoutMs: 60000,
+    });
+  },
+
+  /**
+   * Retrieves practice state and next question for a given kit.
+   */
+  async getPracticeState(id: string): Promise<PracticeResponse> {
+    return apiClient<PracticeResponse>(`/kits/${id}/practice`, {
+      method: "GET",
+    });
+  },
+
+  /**
+   * Records confidence for a question in practice mode.
+   */
+  async recordPracticeConfidence(
+    id: string,
+    questionId: string,
+    confidence: PracticeConfidenceLevel
+  ): Promise<PracticeResponse> {
+    return apiClient<PracticeResponse>(`/kits/${id}/practice`, {
+      method: "POST",
+      body: {
+        question_id: questionId,
+        confidence,
+      },
+    });
+  },
+
+  /**
+   * Resets practice progress for a given kit.
+   */
+  async resetPractice(id: string): Promise<PracticeResponse> {
+    return apiClient<PracticeResponse>(`/kits/${id}/practice/reset`, {
+      method: "POST",
     });
   },
 };

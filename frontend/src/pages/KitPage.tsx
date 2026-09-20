@@ -117,8 +117,19 @@ export const KitPage: React.FC = () => {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "var(--space-3)" }}>
-            <Link to={`/kits/${id}/builder`} className="btn btn-primary" style={{ fontSize: "var(--text-xs)" }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <Link
+              to={`/kits/${id}/practice`}
+              className="btn btn-primary"
+              style={{
+                fontSize: "var(--text-xs)",
+                backgroundColor: "var(--color-primary-light)",
+                fontWeight: 600,
+              }}
+            >
+              🎯 Practice Questions
+            </Link>
+            <Link to={`/kits/${id}/builder`} className="btn btn-secondary" style={{ fontSize: "var(--text-xs)" }}>
               ✏ Edit Kit
             </Link>
             <Link to="/kits/new" className="btn btn-secondary" style={{ fontSize: "var(--text-xs)" }}>

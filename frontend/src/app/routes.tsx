@@ -7,11 +7,12 @@ import { CreateKitPage } from "@/pages/CreateKitPage.js";
 import { GenerationPage } from "@/pages/GenerationPage.js";
 import { KitPage } from "@/pages/KitPage.js";
 import { KitBuilderPage } from "@/pages/KitBuilderPage.js";
+import { PracticePage } from "@/pages/PracticePage.js";
 import { NotFoundPage } from "@/pages/NotFoundPage.js";
 
 /**
  * Application routes.
- * Phase 14 configures /, /login, /register, /kits/new, /kits/:id/generate, /kits/:id, /kits/:id/builder, and * (404).
+ * Phase 16 configures /, /login, /register, /kits/new, /kits/:id/generate, /kits/:id, /kits/:id/builder, /kits/:id/practice, and * (404).
  */
 export const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
       {
         path: "kits/:id/builder",
         element: <KitBuilderPage />,
+      },
+      {
+        path: "kits/:id/practice",
+        element: <PracticePage />,
       },
       {
         path: "*",

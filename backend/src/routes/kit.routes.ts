@@ -13,6 +13,9 @@ import {
   scheduleKitHandler,
   validateKitHandler,
   regenerateKitHandler,
+  getPracticeStateHandler,
+  recordConfidenceHandler,
+  resetPracticeHandler,
 } from "../controllers/kit.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -34,3 +37,6 @@ kitRouter.post("/:id/coverage", coverageKitHandler);
 kitRouter.post("/:id/schedule", scheduleKitHandler);
 kitRouter.post("/:id/validate", validateKitHandler);
 kitRouter.post("/:id/regenerate", regenerateKitHandler);
+kitRouter.get("/:id/practice", getPracticeStateHandler);
+kitRouter.post("/:id/practice", recordConfidenceHandler);
+kitRouter.post("/:id/practice/reset", resetPracticeHandler);

@@ -33,6 +33,7 @@ import { coverageService } from "../services/coverage/index.js";
 import { scheduleService, ScheduleError } from "../services/schedule/index.js";
 import { kitValidationService } from "../services/validation/index.js";
 import { regenerationService, RegenerationError } from "../services/regeneration/index.js";
+import { practiceService, PracticeError } from "../services/practice/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -1226,6 +1227,190 @@ export async function regenerateKitHandler(
     res.status(200).json(result);
   } catch (error: unknown) {
     if (error instanceof RegenerationError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.details ? { details: error.details } : {}),
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * GET /api/v1/kits/:id/practice
+ * Returns the user's practice state and next question.
+ */
+export async function getPracticeStateHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const practiceState = await practiceService.getOrCreatePracticeState(id, userId);
+    res.status(200).json({
+      success: true,
+      practice: practiceState,
+    });
+  } catch (error: unknown) {
+    if (error instanceof PracticeError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.details ? { details: error.details } : {}),
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/practice
+ * Records confidence for the specified question.
+ */
+export async function recordConfidenceHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const { question_id, confidence } = req.body || {};
+
+    if (!question_id || typeof question_id !== "string") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Missing or invalid 'question_id' parameter.",
+        },
+      });
+      return;
+    }
+
+    const practiceState = await practiceService.recordConfidence(
+      id,
+      userId,
+      question_id,
+      confidence
+    );
+
+    res.status(200).json({
+      success: true,
+      practice: practiceState,
+    });
+  } catch (error: unknown) {
+    if (error instanceof PracticeError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.details ? { details: error.details } : {}),
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * POST /api/v1/kits/:id/practice/reset
+ * Resets the user's practice progress.
+ */
+export async function resetPracticeHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const practiceState = await practiceService.resetPractice(id, userId);
+    res.status(200).json({
+      success: true,
+      practice: practiceState,
+    });
+  } catch (error: unknown) {
+    if (error instanceof PracticeError) {
       res.status(error.status).json({
         success: false,
         error: {
