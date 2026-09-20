@@ -5,6 +5,7 @@ import {
   KitRequirement,
   KitCoverage,
   KitSchedule,
+  UpdateKitParams,
 } from "@/types/kit.js";
 
 export interface CreateKitParams {
@@ -81,6 +82,16 @@ export const kitsApi = {
   async createKit(params: CreateKitParams): Promise<{ kit: SafeKit }> {
     return apiClient<{ kit: SafeKit }>("/kits", {
       method: "POST",
+      body: params,
+    });
+  },
+
+  /**
+   * Updates an existing Kit via PATCH /api/v1/kits/:id
+   */
+  async updateKit(id: string, params: UpdateKitParams): Promise<{ kit: SafeKit }> {
+    return apiClient<{ kit: SafeKit }>(`/kits/${id}`, {
+      method: "PATCH",
       body: params,
     });
   },

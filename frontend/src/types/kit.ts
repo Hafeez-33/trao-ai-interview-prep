@@ -52,6 +52,7 @@ export type {
 export interface SafeKit extends KitStructure {
   _id: string;
   status: GenerationStatus;
+  jd?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,4 +66,27 @@ export interface SafeKitSummary {
   role: string;
   status: GenerationStatus;
   createdAt: string;
+}
+
+/**
+ * Internal builder types for Phase 14 editing and state preservation.
+ * These flags are maintained in client builder state per docs/STATE.md.
+ */
+export interface InternalKitQuestion extends KitQuestion {
+  is_custom?: boolean;
+  is_edited?: boolean;
+  is_pinned?: boolean;
+  order?: number;
+}
+
+export interface InternalKitFlashcard extends KitFlashcard {
+  is_custom?: boolean;
+  is_edited?: boolean;
+  order?: number;
+}
+
+export interface UpdateKitParams {
+  jd?: string;
+  company_url?: string;
+  days?: number;
 }

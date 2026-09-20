@@ -118,6 +118,9 @@ export const KitPage: React.FC = () => {
           </div>
 
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            <Link to={`/kits/${id}/builder`} className="btn btn-primary" style={{ fontSize: "var(--text-xs)" }}>
+              ✏ Edit Kit
+            </Link>
             <Link to="/kits/new" className="btn btn-secondary" style={{ fontSize: "var(--text-xs)" }}>
               + New Kit
             </Link>
