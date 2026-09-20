@@ -11,6 +11,7 @@ import {
   generateKitHandler,
   coverageKitHandler,
   scheduleKitHandler,
+  validateKitHandler,
 } from "../controllers/kit.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -30,3 +31,4 @@ kitRouter.post("/:id/research", researchCompanyHandler);
 kitRouter.post("/:id/generate", generateKitHandler);
 kitRouter.post("/:id/coverage", coverageKitHandler);
 kitRouter.post("/:id/schedule", scheduleKitHandler);
+kitRouter.post("/:id/validate", validateKitHandler);

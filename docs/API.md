@@ -155,6 +155,30 @@
 
 ---
 
+#### `POST /api/v1/kits/:id/validate`
+- **Purpose**: Deterministically validate that a Kit is structurally sound, internally consistent, and adheres strictly to Appendix A contracts.
+- **Auth Required**: Yes (Ownership verified).
+- **Operation**: Pure read-only analysis (zero mutations, zero network requests, zero LLM calls).
+- **Validation Layers**:
+  1. **Structural Validation**: Verifies top-level sections (`source`, `company_brief`, `role`, `questions`, `flashcards`, `schedule`, `coverage`) and property types against Appendix A.
+  2. **Referential / Integrity Validation**: Verifies `question.requirement_ids` reference valid requirements; `flashcard.requirement_ids` reference valid requirements; `schedule.days[].question_ids` reference valid questions; no duplicate requirement/question/flashcard IDs.
+  3. **Pipeline / Business-Rule Validation**:
+     - Recalculates expected coverage deterministically and verifies stored `uncovered_requirement_ids` and `passes`.
+     - Validates schedule day count ($1..60$), sequential day numbering ($1..D$), positive integer minutes, and enforces the **Must-Requirement Guarantee** (every `must` requirement has at least one scheduled question).
+     - Checks `source.jd_chars` matches stored JD length and validates URL formats.
+     - Confirms SafeKit boundary cleanses all internal builder metadata (`is_custom`, `is_edited`, `is_pinned`, `order`, `crawled_pages`, `interview_research`).
+- **Response `200 OK`**:
+  ```json
+  {
+    "valid": true,
+    "errors": [],
+    "warnings": []
+  }
+  ```
+- **Errors**: `400 Bad Request` (invalid Kit ID format), `401 Unauthorized`, `404 Not Found` (kit not found or belongs to another user).
+
+---
+
 ### 2.3 Section Regeneration (Preserving User Edits)
 
 #### `POST /api/v1/kits/:id/regenerate`
