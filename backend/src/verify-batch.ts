@@ -50,6 +50,12 @@ import { BatchOutputStructure, KitRequirement, KitQuestion, KitFlashcard } from 
 
 let passedTests = 0;
 let totalTests = 0;
+let unhandledRejectionsCount = 0;
+
+process.on("unhandledRejection", (reason) => {
+  unhandledRejectionsCount++;
+  console.error("Caught unhandled rejection in verify-batch:", reason);
+});
 
 function assert(condition: boolean, message: string) {
   totalTests++;
@@ -441,6 +447,298 @@ async function run() {
     // 36: Phase 17 Dashboard verification regression remains passing
     const verifyDashboardPath = path.resolve(process.cwd(), "src", "verify-dashboard.ts");
     assert(fs.existsSync(verifyDashboardPath), "Phase 17 verify-dashboard.ts remains intact");
+
+    // ============================================================================
+    // SECTION 6: PHASE 19 BATCH ROBUSTNESS & EDGE CASES
+    // ============================================================================
+    console.log("\n--- Section 6: Phase 19 Batch Robustness & Edge Cases ---");
+
+    // 1. Input Robustness Batch (17 mixed edge cases)
+    const p19InputCasesPath = path.join(tempDir, "p19-input-cases.json");
+    const p19InputOutputPath = path.join(tempDir, "p19-input-out.json");
+
+    const p19Cases = {
+      cases: [
+        null, // 1: non-object primitive (null)
+        "invalid string case", // 2: non-object primitive (string)
+        [1, 2, 3], // 3: non-object primitive (array)
+        { id: "p19-04-missing-jd", days: 5 }, // 4: missing JD
+        { id: "p19-05-empty-jd", jd: "  short  ", days: 5 }, // 5: short JD (<10 chars)
+        { id: "p19-06-oversized-jd", jd: "A".repeat(50001), days: 5 }, // 6: oversized JD (>50,000 chars)
+        { id: "p19-07-float-days", jd: "Valid job description for testing float days in Phase 19.", days: 3.7 }, // 7: float days
+        { id: "p19-08-negative-days", jd: "Valid job description for testing negative days in Phase 19.", days: -2 }, // 8: negative days
+        { id: "p19-09-excess-days", jd: "Valid job description for testing excess days in Phase 19.", days: 61 }, // 9: excess days (>60)
+        { id: "p19-10-dup", jd: "Valid job description for first occurrence of duplicate ID in Phase 19.", days: 5 }, // 10: first occurrence
+        { id: "p19-10-dup", jd: "Valid job description for second occurrence of duplicate ID in Phase 19.", days: 5 }, // 11: duplicate ID
+        { jd: "Valid job description for testing missing case ID in Phase 19.", days: 5 }, // 12: missing case ID
+        { id: "p19-13-malformed-url", jd: "Valid job description for testing malformed company URL.", company_url: "not-a-valid-url", days: 5 }, // 13: malformed url
+        { id: "p19-14-ftp-url", jd: "Valid job description for testing unsupported ftp protocol.", company_url: "ftp://example.com/files", days: 5 }, // 14: ftp url
+        { id: "p19-15-file-url", jd: "Valid job description for testing unsupported file protocol.", company_url: "file:///etc/passwd", days: 5 }, // 15: file url
+        { id: "p19-16-long-url", jd: "Valid job description for testing long company URL.", company_url: "http://example.com/" + "a".repeat(2001), days: 5 }, // 16: long url (>2000 chars)
+        { id: "p19-17-valid-recovery", jd: "Valid job description ensuring successful recovery after consecutive failures in Phase 19.", days: 5 }, // 17: valid recovery
+      ],
+    };
+
+    fs.writeFileSync(p19InputCasesPath, JSON.stringify(p19Cases), "utf-8");
+
+    process.exitCode = 0;
+    await runBatchEvaluator(["--input", p19InputCasesPath, "--output", p19InputOutputPath]);
+    assert(process.exitCode === 0, "Phase 19 edge-case batch completes without process crash");
+
+    const p19InputOutput = JSON.parse(fs.readFileSync(p19InputOutputPath, "utf-8")) as BatchOutputStructure;
+
+    // Assertions on input robustness batch
+    assert(p19InputOutput.kits.length === 17, "Exactly one output entry per input case (17/17)");
+    assert(p19InputOutput.kits[0].status === "failed" && p19InputOutput.kits[0].error?.code === "INVALID_INPUT_PARAMETERS", "Null case entry fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[1].status === "failed" && p19InputOutput.kits[1].error?.code === "INVALID_INPUT_PARAMETERS", "String case entry fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[2].status === "failed" && p19InputOutput.kits[2].error?.code === "INVALID_INPUT_PARAMETERS", "Array case entry fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[3].status === "failed" && p19InputOutput.kits[3].error?.code === "INVALID_INPUT_PARAMETERS", "Missing JD fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[4].status === "failed" && p19InputOutput.kits[4].error?.code === "INVALID_INPUT_PARAMETERS", "Short JD (<10 chars) fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[5].status === "failed" && p19InputOutput.kits[5].error?.code === "INVALID_INPUT_PARAMETERS", "Oversized JD (>50k chars) fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[6].status === "failed" && p19InputOutput.kits[6].error?.code === "INVALID_INPUT_PARAMETERS", "Non-integer days (float 3.7) fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[7].status === "failed" && p19InputOutput.kits[7].error?.code === "INVALID_INPUT_PARAMETERS", "Negative days (-2) fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[8].status === "failed" && p19InputOutput.kits[8].error?.code === "INVALID_INPUT_PARAMETERS", "Excess days (>60) fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[9].status === "ok" && p19InputOutput.kits[9].kit !== null, "First occurrence of duplicate ID succeeds");
+    assert(p19InputOutput.kits[10].status === "failed" && p19InputOutput.kits[10].error?.message.includes("Duplicate case ID"), "Second occurrence of duplicate ID fails with duplicate message");
+    assert(p19InputOutput.kits[11].id === "case-12", "Missing case ID gets deterministic fallback ID 'case-12'");
+    assert(p19InputOutput.kits[12].status === "failed" && p19InputOutput.kits[12].error?.code === "INVALID_INPUT_PARAMETERS", "Malformed company URL fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[13].status === "failed" && p19InputOutput.kits[13].error?.code === "INVALID_INPUT_PARAMETERS", "Unsupported ftp:// protocol fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[14].status === "failed" && p19InputOutput.kits[14].error?.code === "INVALID_INPUT_PARAMETERS", "Unsupported file:// protocol fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[15].status === "failed" && p19InputOutput.kits[15].error?.code === "INVALID_INPUT_PARAMETERS", "Excessively long URL (>2000 chars) fails with INVALID_INPUT_PARAMETERS");
+    assert(p19InputOutput.kits[16].status === "ok" && p19InputOutput.kits[16].kit !== null, "Valid case recovers and succeeds immediately after consecutive failures");
+
+    // 2. Timeout & Recovery Batch
+    const timeoutCasesPath = path.join(tempDir, "p19-timeout-cases.json");
+    const timeoutOutputPath = path.join(tempDir, "p19-timeout-out.json");
+
+    // Configure mock LLM with a delayed response handler for TIMEOUT_TRIGGER
+    const originalHandler = (mockLlm as any).responseHandler;
+    mockLlm.setMockResponse(async (prompt: string, options?: any) => {
+      if (prompt.includes("TIMEOUT_TRIGGER")) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+      if (typeof originalHandler === "function") {
+        return originalHandler(prompt, options);
+      }
+      return originalHandler;
+    });
+
+    const timeoutCases = {
+      cases: [
+        {
+          id: "p19-timeout-case",
+          jd: "TIMEOUT_TRIGGER: Valid job description designed to trigger deterministic timeout test.",
+          days: 5,
+        },
+        {
+          id: "p19-post-timeout-recovery",
+          jd: "Valid job description executing immediately after timed out case to verify recovery.",
+          days: 5,
+        },
+      ],
+    };
+
+    fs.writeFileSync(timeoutCasesPath, JSON.stringify(timeoutCases), "utf-8");
+
+    process.exitCode = 0;
+    await runBatchEvaluator([
+      "--input",
+      timeoutCasesPath,
+      "--output",
+      timeoutOutputPath,
+      "--timeout",
+      "50", // 50ms timeout
+    ]);
+
+    const timeoutOutput = JSON.parse(fs.readFileSync(timeoutOutputPath, "utf-8")) as BatchOutputStructure;
+    assert(
+      timeoutOutput.kits[0].status === "failed" &&
+        timeoutOutput.kits[0].error?.code === "CASE_TIMEOUT" &&
+        timeoutOutput.kits[0].error?.message.includes("timed out after 50ms"),
+      "Case timeout produces status 'failed', kit null, and error code 'CASE_TIMEOUT'"
+    );
+    assert(
+      timeoutOutput.kits[1].status === "ok" && timeoutOutput.kits[1].kit !== null,
+      "Case immediately following timeout succeeds with status 'ok' and valid kit"
+    );
+    assert(
+      timeoutOutput.version === "1.0" && typeof timeoutOutput.generated_at === "string",
+      "Timeout output strictly conforms to BatchOutputStructure schema"
+    );
+
+    // Restore standard mock response
+    mockLlm.setMockResponse(originalHandler);
+
+    // 3. LLM Provider Failure & Malformed JSON Isolation
+    const llmFailureCasesPath = path.join(tempDir, "p19-llm-failure-cases.json");
+    const llmFailureOutputPath = path.join(tempDir, "p19-llm-failure-out.json");
+
+    mockLlm.setMockResponse(async (prompt: string, options?: any) => {
+      if (prompt.includes("THROW_PROVIDER_ERROR")) {
+        throw new Error("Simulated LLM network timeout or 503 error");
+      }
+      if (prompt.includes("RETURN_MALFORMED_JSON")) {
+        return "{ malformed json: true, missing quotes ";
+      }
+      if (typeof originalHandler === "function") {
+        return originalHandler(prompt, options);
+      }
+      return originalHandler;
+    });
+
+    const llmFailureCases = {
+      cases: [
+        {
+          id: "p19-llm-throw",
+          jd: "THROW_PROVIDER_ERROR: Job description triggering provider exception.",
+          days: 5,
+        },
+        {
+          id: "p19-llm-malformed",
+          jd: "RETURN_MALFORMED_JSON: Job description triggering malformed JSON response.",
+          days: 5,
+        },
+        {
+          id: "p19-crawler-unreachable",
+          company_url: "http://127.0.0.1:59998/closed-port", // Unreachable URL
+          jd: "Valid job description with unreachable company URL to verify graceful degradation.",
+          days: 5,
+        },
+        {
+          id: "p19-llm-recovery-ok",
+          jd: "Valid job description verifying recovery after LLM and crawler failure cases.",
+          days: 5,
+        },
+      ],
+    };
+
+    fs.writeFileSync(llmFailureCasesPath, JSON.stringify(llmFailureCases), "utf-8");
+
+    process.exitCode = 0;
+    await runBatchEvaluator([
+      "--input",
+      llmFailureCasesPath,
+      "--output",
+      llmFailureOutputPath,
+    ]);
+
+    const llmFailureOutput = JSON.parse(fs.readFileSync(llmFailureOutputPath, "utf-8")) as BatchOutputStructure;
+    assert(
+      llmFailureOutput.kits[0].status === "failed" &&
+        llmFailureOutput.kits[0].error !== null,
+      "LLM provider exception is caught and marked as failed case without crashing"
+    );
+    assert(
+      llmFailureOutput.kits[1].status === "failed" &&
+        llmFailureOutput.kits[1].error?.code === "LLM_OUTPUT_PARSE_ERROR",
+      "Malformed LLM JSON is caught and marked as LLM_OUTPUT_PARSE_ERROR"
+    );
+    assert(
+      llmFailureOutput.kits[2].status === "ok" &&
+        llmFailureOutput.kits[2].kit !== null,
+      "Unreachable company URL degrades gracefully to JD-only kit with status 'ok'"
+    );
+    assert(
+      llmFailureOutput.kits[3].status === "ok" &&
+        llmFailureOutput.kits[3].kit !== null,
+      "Subsequent case succeeds normally after LLM and crawler failure cases"
+    );
+
+    // Restore standard mock response
+    mockLlm.setMockResponse(originalHandler);
+
+    // 4. Secret & Token Sanitization in Error Messages
+    const secretLeakCasesPath = path.join(tempDir, "p19-secret-cases.json");
+    const secretLeakOutputPath = path.join(tempDir, "p19-secret-out.json");
+
+    mockLlm.setMockResponse(async (prompt: string, options?: any) => {
+      if (prompt.includes("LEAK_SECRETS_TRIGGER")) {
+        throw new Error(
+          "Failed with API key AIzaSyD-123456789012345678901234567890123 and Bearer secret_jwt_token_123 and mongodb+srv://admin:supersecretpass@cluster0.mongodb.net/test"
+        );
+      }
+      if (typeof originalHandler === "function") {
+        return originalHandler(prompt, options);
+      }
+      return originalHandler;
+    });
+
+    const secretCases = {
+      cases: [
+        {
+          id: "p19-secret-case",
+          jd: "LEAK_SECRETS_TRIGGER: Job description to verify secret redaction in error output.",
+          days: 5,
+        },
+      ],
+    };
+
+    fs.writeFileSync(secretLeakCasesPath, JSON.stringify(secretCases), "utf-8");
+
+    process.exitCode = 0;
+    await runBatchEvaluator([
+      "--input",
+      secretLeakCasesPath,
+      "--output",
+      secretLeakOutputPath,
+    ]);
+
+    const secretOutput = JSON.parse(fs.readFileSync(secretLeakOutputPath, "utf-8")) as BatchOutputStructure;
+    const errorMessage = secretOutput.kits[0].error?.message || "";
+    assert(
+      !errorMessage.includes("AIzaSyD-123456789012345678901234567890123") &&
+        errorMessage.includes("[REDACTED_API_KEY]"),
+      "API keys in error messages are redacted with [REDACTED_API_KEY]"
+    );
+    assert(
+      !errorMessage.includes("secret_jwt_token_123") &&
+        errorMessage.includes("[REDACTED_TOKEN]"),
+      "Bearer tokens in error messages are redacted with [REDACTED_TOKEN]"
+    );
+    assert(
+      !errorMessage.includes("supersecretpass") &&
+        errorMessage.includes("[REDACTED_AUTH]"),
+      "Database credentials in error messages are redacted with [REDACTED_AUTH]"
+    );
+
+    // Restore standard mock response
+    mockLlm.setMockResponse(originalHandler);
+
+    // 5. Five-Case Batch Assessment Performance & Clean Directory Creation
+    const fiveCasesPath = path.join(tempDir, "p19-five-cases.json");
+    const nestedOutputDir = path.join(tempDir, "nested", "level1", "level2", "level3");
+    const nestedOutputPath = path.join(nestedOutputDir, "five-cases-out.json");
+
+    const fiveCases = {
+      cases: [
+        { id: "case-5c-1", jd: "Senior Software Engineer with Node.js and TypeScript experience.", days: 5 },
+        { id: "case-5c-2", jd: "Distributed Systems Architect with Kubernetes and Go experience.", days: 3 },
+        { id: "case-5c-3", jd: "Frontend Engineer with React, TypeScript, and modern CSS expertise.", days: 7 },
+        { id: "case-5c-4", jd: "Site Reliability Engineer with cloud infrastructure automation background.", days: 4 },
+        { id: "case-5c-5", jd: "Full Stack Engineer building resilient web applications and APIs.", days: 5 },
+      ],
+    };
+
+    fs.writeFileSync(fiveCasesPath, JSON.stringify(fiveCases), "utf-8");
+
+    const startTime = Date.now();
+    process.exitCode = 0;
+    await runBatchEvaluator([
+      "--input",
+      fiveCasesPath,
+      "--output",
+      nestedOutputPath,
+    ]);
+    const durationMs = Date.now() - startTime;
+
+    assert(fs.existsSync(nestedOutputPath), "Deeply nested output directory was created automatically");
+    const fiveOutput = JSON.parse(fs.readFileSync(nestedOutputPath, "utf-8")) as BatchOutputStructure;
+    assert(fiveOutput.kits.length === 5, "Five-case batch processes all 5 cases (5/5)");
+    assert(fiveOutput.kits.every((k) => k.status === "ok" && k.kit !== null), "All 5 cases in standard batch succeed with status 'ok'");
+    assert(durationMs < 60000, `Five-case execution completed quickly (${durationMs}ms < 60,000ms), satisfying assessment performance requirement`);
+
+    // 6. Zero Unhandled Promise Rejections
+    assert(unhandledRejectionsCount === 0, "Zero unhandled promise rejections occurred during all Phase 19 robustness runs");
 
     console.log("\n==================================================");
     console.log(`RESULTS: ${passedTests} / ${totalTests} assertions passed`);

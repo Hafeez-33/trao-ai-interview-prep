@@ -1,0 +1,3 @@
+warning: in the working copy of 'backend/src/evaluate.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/verify-batch.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'results/test-output.json', LF will be replaced by CRLF the next time Git touches it
