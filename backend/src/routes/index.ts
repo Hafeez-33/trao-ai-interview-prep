@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { healthRouter } from "./health.routes.js";
 import { authRouter } from "./auth.routes.js";
+import { kitRouter } from "./kit.routes.js";
 
 export const routes = Router();
 
@@ -9,3 +10,4 @@ routes.use(healthRouter);
 
 // Mount API v1 routes
 routes.use("/api/v1/auth", authRouter);
+routes.use("/api/v1/kits", kitRouter);

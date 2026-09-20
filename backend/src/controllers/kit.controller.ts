@@ -1,0 +1,370 @@
+import { Request, Response, NextFunction } from "express";
+import {
+  createKit,
+  findKitById,
+  listKitsByUser,
+  updateKit,
+  deleteKit,
+} from "../db/kits.js";
+import {
+  toSafeKit,
+  toSafeKitSummary,
+  UpdateKitParams,
+} from "../types/kit.js";
+import {
+  validateJd,
+  validateCompanyUrl,
+  validateDays,
+  isValidObjectId,
+} from "../utils/validation.js";
+
+/**
+ * Helper to retrieve the authenticated user ID from the request session.
+ */
+function getAuthUserId(req: Request): string | null {
+  return req.session?.user?.id || req.user?.id || null;
+}
+
+/**
+ * POST /api/v1/kits
+ * Creates a new Kit draft with validated Job Description and Phase 1 source fields.
+ */
+export async function createKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const { jd, company_url, days } = req.body || {};
+
+    // 1. Validate Job Description (Mandatory)
+    const jdResult = validateJd(jd);
+    if (!jdResult.valid) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: jdResult.error || "Invalid job description.",
+        },
+      });
+      return;
+    }
+
+    // 2. Validate company_url (Optional)
+    const urlResult = validateCompanyUrl(company_url);
+    if (!urlResult.valid) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: urlResult.error || "Invalid company_url.",
+        },
+      });
+      return;
+    }
+
+    // 3. Validate days (Optional)
+    const daysResult = validateDays(days);
+    if (!daysResult.valid) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: daysResult.error || "Invalid days.",
+        },
+      });
+      return;
+    }
+
+    // 4. Persist Kit to database
+    const newKit = await createKit({
+      userId,
+      jd: jdResult.value!,
+      company_url: urlResult.value,
+      days: daysResult.value,
+    });
+
+    res.status(201).json({
+      kit: toSafeKit(newKit),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/v1/kits
+ * Lists all kits owned by the authenticated user, ordered newest first.
+ */
+export async function listKitsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const kits = await listKitsByUser(userId);
+
+    res.status(200).json({
+      kits: kits.map(toSafeKitSummary),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/v1/kits/:id
+ * Retrieves a single Kit by ID. Enforces ownership at the database query level.
+ */
+export async function getKitByIdHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const kit = await findKitById(id, userId);
+
+    if (!kit) {
+      // Prevents revealing whether another user's Kit exists
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      kit: toSafeKit(kit),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /api/v1/kits/:id
+ * Updates editable Phase 1/4 source/JD information.
+ * Strictly preserves kit ownership and rejects unallowed field modifications.
+ */
+export async function updateKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const { jd, company_url, days } = req.body || {};
+
+    // Ensure at least one valid Phase 4 field is present
+    if (jd === undefined && company_url === undefined && days === undefined) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "At least one editable field (jd, company_url, days) must be provided.",
+        },
+      });
+      return;
+    }
+
+    const updateParams: UpdateKitParams = {};
+
+    if (jd !== undefined) {
+      const jdResult = validateJd(jd);
+      if (!jdResult.valid) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "INVALID_INPUT_PARAMETERS",
+            message: jdResult.error || "Invalid job description.",
+          },
+        });
+        return;
+      }
+      updateParams.jd = jdResult.value!;
+    }
+
+    if (company_url !== undefined) {
+      const urlResult = validateCompanyUrl(company_url);
+      if (!urlResult.valid) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "INVALID_INPUT_PARAMETERS",
+            message: urlResult.error || "Invalid company_url.",
+          },
+        });
+        return;
+      }
+      updateParams.company_url = urlResult.value;
+    }
+
+    if (days !== undefined) {
+      const daysResult = validateDays(days);
+      if (!daysResult.valid) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "INVALID_INPUT_PARAMETERS",
+            message: daysResult.error || "Invalid days.",
+          },
+        });
+        return;
+      }
+      updateParams.days = daysResult.value;
+    }
+
+    const updatedKit = await updateKit(id, userId, updateParams);
+
+    if (!updatedKit) {
+      // Prevents revealing whether another user's Kit exists
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      kit: toSafeKit(updatedKit),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * DELETE /api/v1/kits/:id
+ * Deletes a Kit owned by the authenticated user.
+ */
+export async function deleteKitHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const deleted = await deleteKit(id, userId);
+
+    if (!deleted) {
+      // Prevents revealing whether another user's Kit exists
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "KIT_NOT_FOUND",
+          message: "Kit not found.",
+        },
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Kit deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -1,6 +1,6 @@
 import { app } from "./app.js";
 import { config } from "./config/env.js";
-import { connectDatabase, closeDatabase, ensureUserIndexes } from "./db/index.js";
+import { connectDatabase, closeDatabase, ensureUserIndexes, ensureKitIndexes } from "./db/index.js";
 import type { Server } from "http";
 
 let server: Server | null = null;
@@ -14,6 +14,7 @@ async function startServer(): Promise<void> {
 
     // 2. Initialize and ensure required database indexes
     await ensureUserIndexes();
+    await ensureKitIndexes();
     console.log("[server] Database indexes verified.");
 
     // 3. Start HTTP Server
