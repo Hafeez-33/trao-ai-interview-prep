@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "evaluate": "npm --prefix backend run evaluate --"
+    "evaluate": "npm --prefix backend run evaluate --",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend test",
+    "test": "npm run test:backend && npm run test:frontend"
   }
 }

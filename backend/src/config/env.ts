@@ -60,7 +60,7 @@ export function loadConfig(): AppConfig {
   const geminiModel =
     process.env.GEMINI_MODEL?.trim() ||
     process.env.LLM_MODEL?.trim() ||
-    "gemini-2.5-flash";
+    "gemini-3.6-flash";
 
   return {
     port: isNaN(port) ? 5000 : port,

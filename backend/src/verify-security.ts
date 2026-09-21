@@ -297,7 +297,9 @@ async function runSecuritySuite() {
   console.log("\n--- Section G: XSS & Output Safety ---");
 
   // Verify zero usage of dangerouslySetInnerHTML across entire frontend codebase
-  const frontendSrcDir = path.resolve(process.cwd(), "..", "frontend", "src");
+  const frontendSrcDir = fs.existsSync(path.resolve(process.cwd(), "frontend", "src"))
+    ? path.resolve(process.cwd(), "frontend", "src")
+    : path.resolve(process.cwd(), "..", "frontend", "src");
   let foundDangerousHtml = false;
   let foundRawInnerHtml = false;
 

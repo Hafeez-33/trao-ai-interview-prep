@@ -12,7 +12,7 @@ export class GeminiLlmProvider implements ILlmProvider {
 
   constructor(apiKey?: string, model?: string, endpoint?: string) {
     this.apiKey = (apiKey || config.llmApiKey || "").trim();
-    this.model = (model || config.geminiModel || "gemini-2.5-flash").trim();
+    this.model = (model || config.geminiModel || "gemini-3.6-flash").trim();
     this.baseEndpoint = (endpoint || DEFAULT_GEMINI_ENDPOINT).replace(/\/+$/, "");
   }
 

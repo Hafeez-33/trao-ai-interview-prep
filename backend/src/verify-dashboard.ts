@@ -143,7 +143,9 @@ async function run() {
   server = app.listen(0);
   port = (server.address() as { port: number }).port;
 
-  const frontendRoot = path.resolve(process.cwd(), "..", "frontend", "src");
+  const frontendRoot = fs.existsSync(path.resolve(process.cwd(), "frontend", "src"))
+    ? path.resolve(process.cwd(), "frontend", "src")
+    : path.resolve(process.cwd(), "..", "frontend", "src");
 
   // ============================================================================
   // SECTION 1: Frontend Static & Architectural Assertions

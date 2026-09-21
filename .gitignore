@@ -33,6 +33,8 @@ pnpm-debug.log*
 # Temporary and Cache Files
 .turbo/
 .cache/
+.vitest/
+temp-mongodb-data/
 tmp/
 temp/
 *.tmp

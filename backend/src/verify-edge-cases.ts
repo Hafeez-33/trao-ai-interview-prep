@@ -460,7 +460,9 @@ async function run() {
   assert(validatedJdWithScript.value?.includes("<script>") ?? false, "Script tag retained as harmless text string without execution");
 
   // Verify zero usage of dangerouslySetInnerHTML in frontend source files
-  const frontendSrcDir = path.resolve(process.cwd(), "..", "frontend", "src");
+  const frontendSrcDir = fs.existsSync(path.resolve(process.cwd(), "frontend", "src"))
+    ? path.resolve(process.cwd(), "frontend", "src")
+    : path.resolve(process.cwd(), "..", "frontend", "src");
   let foundDangerouslySetInnerHTML = false;
 
   function scanDir(dir: string) {

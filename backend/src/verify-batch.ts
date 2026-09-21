@@ -402,7 +402,10 @@ async function run() {
     assert(typeof executeKitPipeline === "function", "executeKitPipeline is a callable shared function");
 
     // 31: CLI does not import React or frontend files
-    const evaluateTsContent = fs.readFileSync(path.resolve(process.cwd(), "src", "evaluate.ts"), "utf-8");
+    const evaluateTsPath = fs.existsSync(path.resolve(process.cwd(), "backend", "src", "evaluate.ts"))
+      ? path.resolve(process.cwd(), "backend", "src", "evaluate.ts")
+      : path.resolve(process.cwd(), "src", "evaluate.ts");
+    const evaluateTsContent = fs.readFileSync(evaluateTsPath, "utf-8");
     assert(
       !evaluateTsContent.includes("from \"react\"") &&
         !evaluateTsContent.includes("from '@/") &&
@@ -417,7 +420,9 @@ async function run() {
     );
 
     // 33: Root package.json exists and defines evaluate script
-    const rootPkgPath = path.resolve(process.cwd(), "..", "package.json");
+    const rootPkgPath = fs.existsSync(path.resolve(process.cwd(), "package.json"))
+      ? path.resolve(process.cwd(), "package.json")
+      : path.resolve(process.cwd(), "..", "package.json");
     assert(fs.existsSync(rootPkgPath), "Root package.json exists");
     const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, "utf-8"));
     assert(
@@ -433,6 +438,12 @@ async function run() {
       "Output JSON conforms strictly to BatchOutputStructure schema (version 1.0, generated_at, kits)"
     );
 
+    // 35: Phase 14 verify-dashboard.ts suite exists
+    const verifyDashboardPath = fs.existsSync(path.resolve(process.cwd(), "backend", "src", "verify-dashboard.ts"))
+      ? path.resolve(process.cwd(), "backend", "src", "verify-dashboard.ts")
+      : path.resolve(process.cwd(), "src", "verify-dashboard.ts");
+    assert(fs.existsSync(verifyDashboardPath), "Phase 14 verify-dashboard.ts exists in backend/src");
+
     // 35: Deterministic output stability across repeated runs
     const repeatOutputPath = path.join(tempDir, "repeat-out.json");
     await runBatchEvaluator(["--input", multiCasesPath, "--output", repeatOutputPath]);
@@ -445,7 +456,6 @@ async function run() {
     );
 
     // 36: Phase 17 Dashboard verification regression remains passing
-    const verifyDashboardPath = path.resolve(process.cwd(), "src", "verify-dashboard.ts");
     assert(fs.existsSync(verifyDashboardPath), "Phase 17 verify-dashboard.ts remains intact");
 
     // ============================================================================
