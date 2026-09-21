@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generated_at": "2026-09-21T06:02:39.549Z",
+  "generated_at": "2026-09-21T14:15:54.125Z",
   "kits": [
     {
       "id": "case-01-backend-engineer",
@@ -12,7 +12,7 @@
           "role": "Senior Backend Engineer",
           "location": "Remote, Global",
           "jd_chars": 401,
-          "researched_at": "2026-09-21T06:01:58.896Z",
+          "researched_at": "2026-09-21T14:15:17.651Z",
           "pages_used": []
         },
         "company_brief": {
@@ -29,49 +29,55 @@
           "requirements": [
             {
               "id": "r1",
-              "text": "Proficiency in Node.js, TypeScript, and MongoDB",
+              "text": "Proficiency in Node.js",
               "kind": "technical",
               "priority": "must"
             },
             {
               "id": "r2",
-              "text": "Experience with distributed systems",
+              "text": "Proficiency in TypeScript",
               "kind": "technical",
               "priority": "must"
             },
             {
               "id": "r3",
-              "text": "Experience with high-throughput message queues (Kafka or RabbitMQ)",
+              "text": "Proficiency in MongoDB",
               "kind": "technical",
               "priority": "must"
             },
             {
               "id": "r4",
-              "text": "Experience with microservices architecture",
+              "text": "Experience with distributed systems",
               "kind": "technical",
               "priority": "must"
             },
             {
               "id": "r5",
-              "text": "Ability to build scalable APIs and optimize database queries",
+              "text": "Experience with high-throughput message queues such as Kafka or RabbitMQ",
               "kind": "technical",
               "priority": "must"
             },
             {
               "id": "r6",
+              "text": "Experience with microservices architecture",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r7",
               "text": "Experience with Kubernetes",
               "kind": "technical",
               "priority": "nice"
             },
             {
-              "id": "r7",
+              "id": "r8",
               "text": "Experience with GraphQL",
               "kind": "technical",
               "priority": "nice"
             },
             {
-              "id": "r8",
-              "text": "Collaboration with cross-functional teams",
+              "id": "r9",
+              "text": "Collaborate with cross-functional teams",
               "kind": "behavioural",
               "priority": "must"
             }
@@ -82,107 +88,146 @@
             "id": "q1",
             "requirement_ids": [
               "r1",
-              "r5"
+              "r2"
             ],
             "category": "technical",
-            "prompt": "How do you optimize slow aggregation pipelines and high-write throughput operations in MongoDB when building scalable APIs in Node.js/TypeScript?",
-            "answer_outline": "Discuss compound indexing strategies, explain plans ($explain), limiting memory consumption using $match early in pipelines, using write concerns appropriately, and leveraging bulk write operations or streaming to avoid Node.js event loop blocking.",
+            "prompt": "Explain how you manage asynchronous operations and error handling in a large-scale Node.js application written in TypeScript. How do type guards and custom error classes improve maintainability?",
+            "answer_outline": "Discuss async/await best practices, unhandled rejection handlers, process termination safety, and using TypeScript discriminated unions or custom error classes for robust runtime type-checking and clear error boundaries.",
             "difficulty": 2
           },
           {
             "id": "q2",
             "requirement_ids": [
-              "r2",
-              "r3",
-              "r4"
+              "r3"
             ],
-            "category": "system-design",
-            "prompt": "Design a high-throughput event ingestion system capable of processing millions of events per minute across microservices using Kafka or RabbitMQ. How do you guarantee message ordering and fault tolerance?",
-            "answer_outline": "Explain partitioning strategies in Kafka vs routing keys in RabbitMQ, ensuring idempotent event consumers, handling dead-letter queues (DLQ), using the transactional outbox pattern to prevent data loss, and scaling consumer groups horizontally.",
+            "category": "technical",
+            "prompt": "How do you optimize slow-running MongoDB queries in a high-volume production database? Explain your approach to index creation, schema design, and execution plan analysis.",
+            "answer_outline": "Cover the use of explain() and executionStats to identify COLLSCAN, creating compound indexes following the ESR (Equality, Sort, Range) rule, avoiding unbounded arrays, and refactoring schema design to balance normalization versus denormalization.",
             "difficulty": 3
           },
           {
             "id": "q3",
             "requirement_ids": [
-              "r7"
+              "r4",
+              "r6"
             ],
-            "category": "technical",
-            "prompt": "What are the trade-offs of using GraphQL over REST for backend APIs, and how do you resolve the N+1 query problem when fetching relational data from MongoDB?",
-            "answer_outline": "Detail trade-offs like reduced over-fetching vs client query complexity and caching overhead. Explain solving N+1 issues using DataLoader for batching and caching queries or using MongoDB aggregation pipelines with $lookup.",
-            "difficulty": 2
+            "category": "system-design",
+            "prompt": "Design a distributed tracing and logging strategy for a microservices architecture to ensure high observability and quick root-cause analysis during network failures.",
+            "answer_outline": "Address propagating correlation IDs across service boundaries, integrating structured JSON logging, utilizing OpenTelemetry or similar standards, and aggregating logs centrally while handling network partitions and dropped spans gracefully.",
+            "difficulty": 3
           },
           {
             "id": "q4",
             "requirement_ids": [
-              "r8"
+              "r5"
             ],
-            "category": "behavioural",
-            "prompt": "Describe a time when you had to coordinate a breaking API or schema change across multiple cross-functional teams. How did you ensure seamless communication and minimize deployment downtime?",
-            "answer_outline": "Detail the situation using STAR method. Focus on proactive communication, API versioning or deprecation strategies (e.g., feature flags, dual-writing), establishing contract testing with frontend/product teams, and monitoring rollouts.",
+            "category": "technical",
+            "prompt": "Compare Kafka and RabbitMQ in terms of message delivery guarantees, throughput, and consumer model. When would you choose one over the other for a distributed event-driven system?",
+            "answer_outline": "Explain Kafka's log-based, high-throughput model with partitioned consumer groups versus RabbitMQ's traditional broker model with complex routing exchanges, queue flexibility, and acknowledgement modes.",
             "difficulty": 2
           },
           {
             "id": "q5",
             "requirement_ids": [
-              "r5",
-              "r8"
+              "r7"
             ],
-            "category": "company-fit",
-            "prompt": "At a developer-centric product company like PostHog, how do you prioritize backend technical debt and query optimization against fast-paced feature delivery requests from cross-functional teams?",
-            "answer_outline": "Explain data-driven prioritization using latency/throughput metrics, establishing clear SLAs/SLOs, framing technical improvements in terms of user experience and infrastructure cost, and dedicating capacity for platform stability.",
+            "category": "technical",
+            "prompt": "How do liveness and readiness probes in Kubernetes function, and why are they critical for maintaining zero-downtime deployments in a microservices environment?",
+            "answer_outline": "Explain that liveness probes determine when to restart containers, readiness probes control when traffic is routed to a pod, and how proper configuration prevents traffic routing to uninitialized or failing pods during scaling events.",
             "difficulty": 2
           },
           {
             "id": "q6",
             "requirement_ids": [
-              "r6"
+              "r8"
             ],
             "category": "technical",
-            "prompt": "In a high-throughput distributed system, how do you configure Kubernetes pod resource requests, limits, and Horizontal Pod Autoscaling (HPA) to prevent OOMKills and handle sudden traffic spikes effectively?",
-            "answer_outline": "A strong answer should explain: 1) The distinction between CPU (compressible) and Memory (non-compressible) resources and how exceeding memory limits leads to OOMKilled pods. 2) Setting appropriate resource requests for scheduling guarantees vs limits to prevent noisy neighbors. 3) Configuring HPA using standard metrics (CPU/Memory) or custom application metrics (e.g., message queue lag, request latency). 4) Strategies like pod disruption budgets and graceful shutdown signals (SIGTERM handling) to ensure zero-downtime rolling updates.",
-            "difficulty": 3
+            "prompt": "What are the common performance pitfalls in GraphQL servers, such as the N+1 query problem, and how do you mitigate them?",
+            "answer_outline": "Discuss the N+1 query problem caused by nested resolvers, using batching and caching mechanisms like DataLoader, limiting query complexity or depth to prevent denial-of-service, and optimizing database fetching logic.",
+            "difficulty": 2
+          },
+          {
+            "id": "q7",
+            "requirement_ids": [
+              "r9"
+            ],
+            "category": "behavioural",
+            "prompt": "Describe a time when you had to collaborate with cross-functional team members (such as product managers or frontend engineers) to align on technical constraints for a major feature release.",
+            "answer_outline": "Look for structured communication, active listening, translating technical debt or architectural limitations into business impacts, finding acceptable compromises, and maintaining transparent progress tracking.",
+            "difficulty": 2
           }
         ],
         "flashcards": [
           {
             "id": "f1",
-            "front": "How does Node.js handle CPU-intensive tasks without blocking the main Event Loop?",
-            "back": "By offloading tasks to Worker Threads (worker_threads module) or spawning external processes, avoiding starvation of incoming I/O calls.",
+            "front": "What is the single-threaded event loop in Node.js, and how does it handle asynchronous I/O?",
+            "back": "Node.js runs JavaScript on a single thread using an event loop to delegate heavy I/O operations to the system kernel or thread pool (libuv), executing callbacks once operations complete.",
             "requirement_ids": [
               "r1"
             ]
           },
           {
             "id": "f2",
-            "front": "What is the key difference between Kafka and RabbitMQ regarding message consumption?",
-            "back": "Kafka uses a pull-based log architecture where consumers track offsets, allowing message replaying. RabbitMQ uses a push-based model where messages are deleted post-acknowledgments.",
+            "front": "What is the difference between an 'interface' and a 'type' alias in TypeScript?",
+            "back": "Interfaces create a new type name, support declaration merging, and are ideal for defining object shapes. Type aliases can represent unions, primitives, and tuples, but do not support declaration merging.",
+            "requirement_ids": [
+              "r2"
+            ]
+          },
+          {
+            "id": "f3",
+            "front": "What is the ESR rule for creating compound indexes in MongoDB?",
+            "back": "Equality, Sort, Range. Place fields used for exact matches (Equality) first, fields used for sorting second, and fields requiring range queries last to maximize index efficiency.",
             "requirement_ids": [
               "r3"
             ]
           },
           {
-            "id": "f3",
-            "front": "What is the Transactional Outbox Pattern in microservices?",
-            "back": "A pattern where database updates and event publishing are written to a local database outbox table in a single transaction, then read asynchronously by a worker to publish to a message broker, ensuring exactly-once publication.",
+            "id": "f4",
+            "front": "What is the CAP theorem in distributed systems?",
+            "back": "States that a distributed data store can simultaneously provide at most two out of three guarantees: Consistency, Availability, and Partition Tolerance. Network partitions are inevitable, requiring a trade-off between Consistency and Availability.",
             "requirement_ids": [
-              "r4",
-              "r2"
+              "r4"
             ]
           },
           {
-            "id": "f4",
-            "front": "What MongoDB command helps diagnose why a query is running slowly?",
-            "back": "db.collection.explain('executionStats') — it reveals index usage, total documents scanned (docsExamined), execution time, and stage types (e.g., IXSCAN vs COLLSCAN).",
+            "id": "f5",
+            "front": "How does Kafka achieve high throughput compared to traditional message queues?",
+            "back": "Kafka uses append-only commit logs, sequential disk I/O, zero-copy data transfer, and partition-based parallelism where consumers read independently from assigned offsets.",
             "requirement_ids": [
               "r5"
             ]
           },
           {
-            "id": "f5",
-            "front": "What is the function of a Kubernetes Readiness Probe vs a Liveness Probe?",
-            "back": "A Readiness Probe checks if a pod is ready to accept traffic; if it fails, traffic is stopped. A Liveness Probe checks if the container is alive; if it fails, Kubernetes restarts the container.",
+            "id": "f6",
+            "front": "What is the Circuit Breaker pattern in microservices architecture?",
+            "back": "A design pattern that prevents cascading failures by failing fast when an external service is unresponsive, allowing the failing service time to recover before retrying requests.",
             "requirement_ids": [
               "r6"
+            ]
+          },
+          {
+            "id": "f7",
+            "front": "What is a Kubernetes Pod?",
+            "back": "The smallest deployable computing unit in Kubernetes that can contain one or more tightly coupled containers sharing storage, network namespace, and lifecycle specifications.",
+            "requirement_ids": [
+              "r7"
+            ]
+          },
+          {
+            "id": "f8",
+            "front": "What is the primary role of the DataLoader utility in a GraphQL server?",
+            "back": "To batch and cache database or API requests within a single request tick, effectively resolving the N+1 query problem by combining multiple keys into a single batch request.",
+            "requirement_ids": [
+              "r8"
+            ]
+          },
+          {
+            "id": "f9",
+            "front": "Why is early cross-functional collaboration vital when designing backend APIs?",
+            "back": "It ensures that frontend requirements, product expectations, performance metrics, and scaling limitations are aligned upfront, reducing costly architectural rework later.",
+            "requirement_ids": [
+              "r9"
             ]
           }
         ],
@@ -193,24 +238,25 @@
               "day": 1,
               "focus": "Technical Architecture & Core Systems",
               "question_ids": [
-                "q2",
-                "q1"
+                "q3",
+                "q2"
               ],
-              "minutes": 70
+              "minutes": 90
             },
             {
               "day": 2,
-              "focus": "Company Fit & Culture Alignment",
+              "focus": "Technical Deep Dive & Coding",
               "question_ids": [
-                "q5"
+                "q1",
+                "q4"
               ],
-              "minutes": 25
+              "minutes": 50
             },
             {
               "day": 3,
               "focus": "Behavioural & Leadership Questions",
               "question_ids": [
-                "q4"
+                "q7"
               ],
               "minutes": 25
             },
@@ -218,15 +264,15 @@
               "day": 4,
               "focus": "Technical Deep Dive & Coding",
               "question_ids": [
-                "q6"
+                "q5"
               ],
-              "minutes": 45
+              "minutes": 25
             },
             {
               "day": 5,
               "focus": "Technical Deep Dive & Coding",
               "question_ids": [
-                "q3"
+                "q6"
               ],
               "minutes": 25
             }
@@ -234,7 +280,7 @@
         },
         "coverage": {
           "uncovered_requirement_ids": [],
-          "passes": 2
+          "passes": 1
         }
       },
       "error": null
@@ -244,8 +290,8 @@
       "status": "failed",
       "kit": null,
       "error": {
-        "code": "LLM_PROVIDER_ERROR",
-        "message": "Gemini API error (503): This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+        "code": "LLM_TIMEOUT",
+        "message": "Gemini request timed out after 30000ms."
       }
     }
   ]
