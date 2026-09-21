@@ -15,12 +15,14 @@ if (fs.existsSync(cwdEnvPath)) {
 }
 
 export interface AppConfig {
+  host: string;
   port: number;
   nodeEnv: "development" | "production" | "test";
   databaseUrl: string;
   sessionSecret: string;
   llmApiKey: string;
   geminiModel: string;
+  frontendUrl?: string;
 }
 
 export function sanitizeDatabaseUrl(url?: string): string {
@@ -42,6 +44,7 @@ export function loadConfig(): AppConfig {
     );
   }
 
+  const host = process.env.HOST?.trim() || "0.0.0.0";
   const port = parseInt(process.env.PORT || "5000", 10);
   const nodeEnv = (process.env.NODE_ENV || "development") as AppConfig["nodeEnv"];
   
@@ -60,15 +63,19 @@ export function loadConfig(): AppConfig {
   const geminiModel =
     process.env.GEMINI_MODEL?.trim() ||
     process.env.LLM_MODEL?.trim() ||
-    "gemini-3.6-flash";
+    "gemini-3.5-flash-lite";
+
+  const frontendUrl = process.env.FRONTEND_URL?.trim() || undefined;
 
   return {
+    host,
     port: isNaN(port) ? 5000 : port,
     nodeEnv,
     databaseUrl,
     sessionSecret: sessionSecret || "trao-default-secret",
     llmApiKey,
     geminiModel,
+    ...(frontendUrl ? { frontendUrl } : {}),
   };
 }
 

@@ -18,8 +18,8 @@ async function startServer(): Promise<void> {
     console.log("[server] Database indexes verified.");
 
     // 3. Start HTTP Server
-    server = app.listen(config.port, () => {
-      console.log(`[server] Trao Backend running on port ${config.port} (${config.nodeEnv})`);
+    server = app.listen(config.port, config.host, () => {
+      console.log(`[server] Trao Backend running on ${config.host}:${config.port} (${config.nodeEnv})`);
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown startup error";
