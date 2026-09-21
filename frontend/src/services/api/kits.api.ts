@@ -8,6 +8,7 @@ import {
   UpdateKitParams,
 } from "@/types/kit.js";
 import type { PracticeConfidenceLevel, PracticeResponse } from "@/types/practice.js";
+import type { WeakSpotsResponse } from "@/types/weak-spots.js";
 
 export interface CreateKitParams {
   jd: string;
@@ -235,6 +236,15 @@ export const kitsApi = {
   async deleteKit(id: string): Promise<{ message: string }> {
     return apiClient<{ message: string }>(`/kits/${id}`, {
       method: "DELETE",
+    });
+  },
+
+  /**
+   * Retrieves deterministic Weak Spots analysis report for a given kit.
+   */
+  async getWeakSpots(id: string): Promise<WeakSpotsResponse> {
+    return apiClient<WeakSpotsResponse>(`/kits/${id}/weak-spots`, {
+      method: "GET",
     });
   },
 };

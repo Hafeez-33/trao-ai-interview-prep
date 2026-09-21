@@ -16,6 +16,7 @@ import {
   getPracticeStateHandler,
   recordConfidenceHandler,
   resetPracticeHandler,
+  getWeakSpotsHandler,
 } from "../controllers/kit.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 
@@ -40,3 +41,4 @@ kitRouter.post("/:id/regenerate", regenerateKitHandler);
 kitRouter.get("/:id/practice", getPracticeStateHandler);
 kitRouter.post("/:id/practice", recordConfidenceHandler);
 kitRouter.post("/:id/practice/reset", resetPracticeHandler);
+kitRouter.get("/:id/weak-spots", getWeakSpotsHandler);

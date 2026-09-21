@@ -34,6 +34,7 @@ import { scheduleService, ScheduleError } from "../services/schedule/index.js";
 import { kitValidationService } from "../services/validation/index.js";
 import { regenerationService, RegenerationError } from "../services/regeneration/index.js";
 import { practiceService, PracticeError } from "../services/practice/index.js";
+import { weakSpotsService, WeakSpotsError } from "../services/weak-spots/index.js";
 import { config } from "../config/env.js";
 
 /**
@@ -1411,6 +1412,62 @@ export async function resetPracticeHandler(
     });
   } catch (error: unknown) {
     if (error instanceof PracticeError) {
+      res.status(error.status).json({
+        success: false,
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.details ? { details: error.details } : {}),
+        },
+      });
+      return;
+    }
+    next(error);
+  }
+}
+
+/**
+ * GET /api/v1/kits/:id/weak-spots
+ * Generates a deterministic Weak Spots analysis for a Kit based on existing
+ * practice mode data and requirement mappings.
+ */
+export async function getWeakSpotsHandler(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required.",
+        },
+      });
+      return;
+    }
+
+    const id = typeof req.params.id === "string" ? req.params.id : "";
+    if (!isValidObjectId(id)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_INPUT_PARAMETERS",
+          message: "Invalid Kit ID format.",
+        },
+      });
+      return;
+    }
+
+    const report = await weakSpotsService.generateWeakSpotsReport(id, userId);
+    res.status(200).json({
+      success: true,
+      report,
+    });
+  } catch (error: unknown) {
+    if (error instanceof WeakSpotsError) {
       res.status(error.status).json({
         success: false,
         error: {

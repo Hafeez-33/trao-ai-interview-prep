@@ -139,6 +139,17 @@ export const KitPage: React.FC = () => {
             >
               🎯 Practice Questions
             </Link>
+            <Link
+              to={`/kits/${id}/weak-spots`}
+              className="btn btn-secondary"
+              style={{
+                fontSize: "var(--text-xs)",
+                fontWeight: 600,
+                color: "var(--color-primary-light)",
+              }}
+            >
+              📊 Weak Spots Report
+            </Link>
             <Link to={`/kits/${id}/builder`} className="btn btn-secondary" style={{ fontSize: "var(--text-xs)" }}>
               ✏ Edit Kit
             </Link>

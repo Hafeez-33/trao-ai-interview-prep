@@ -9,11 +9,12 @@ import { GenerationPage } from "@/pages/GenerationPage.js";
 import { KitPage } from "@/pages/KitPage.js";
 import { KitBuilderPage } from "@/pages/KitBuilderPage.js";
 import { PracticePage } from "@/pages/PracticePage.js";
+import { WeakSpotsPage } from "@/pages/WeakSpotsPage.js";
 import { NotFoundPage } from "@/pages/NotFoundPage.js";
 
 /**
  * Application routes.
- * Phase 17 configures /, /login, /register, /dashboard, /kits/new, /kits/:id/generate, /kits/:id, /kits/:id/builder, /kits/:id/practice, and * (404).
+ * Phase 17 & 23 configures routes for core kit pipeline, builder, practice, and weak-spots diagnostics.
  */
 export const router = createBrowserRouter([
   {
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
       {
         path: "kits/:id/practice",
         element: <PracticePage />,
+      },
+      {
+        path: "kits/:id/weak-spots",
+        element: <WeakSpotsPage />,
       },
       {
         path: "*",
