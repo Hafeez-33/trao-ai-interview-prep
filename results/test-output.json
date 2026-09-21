@@ -1,15 +1,243 @@
 {
   "version": "1.0",
-  "generated_at": "2026-09-20T17:44:37.396Z",
+  "generated_at": "2026-09-21T06:02:39.549Z",
   "kits": [
     {
       "id": "case-01-backend-engineer",
-      "status": "failed",
-      "kit": null,
-      "error": {
-        "code": "LLM_PROVIDER_ERROR",
-        "message": "Gemini API error (404): This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash for the latest features and improvements. We recommend you to use the Interactions API."
-      }
+      "status": "ok",
+      "kit": {
+        "source": {
+          "company": "PostHog",
+          "company_url": "https://posthog.com",
+          "role": "Senior Backend Engineer",
+          "location": "Remote, Global",
+          "jd_chars": 401,
+          "researched_at": "2026-09-21T06:01:58.896Z",
+          "pages_used": []
+        },
+        "company_brief": {
+          "summary": "Interview preparation for Senior Backend Engineer at PostHog.",
+          "what_they_do": "PostHog focuses on the domain outlined in the job description.",
+          "sources": [
+            "https://posthog.com"
+          ]
+        },
+        "role": {
+          "title": "Senior Backend Engineer",
+          "seniority": "",
+          "responsibilities": [],
+          "requirements": [
+            {
+              "id": "r1",
+              "text": "Proficiency in Node.js, TypeScript, and MongoDB",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r2",
+              "text": "Experience with distributed systems",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r3",
+              "text": "Experience with high-throughput message queues (Kafka or RabbitMQ)",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r4",
+              "text": "Experience with microservices architecture",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r5",
+              "text": "Ability to build scalable APIs and optimize database queries",
+              "kind": "technical",
+              "priority": "must"
+            },
+            {
+              "id": "r6",
+              "text": "Experience with Kubernetes",
+              "kind": "technical",
+              "priority": "nice"
+            },
+            {
+              "id": "r7",
+              "text": "Experience with GraphQL",
+              "kind": "technical",
+              "priority": "nice"
+            },
+            {
+              "id": "r8",
+              "text": "Collaboration with cross-functional teams",
+              "kind": "behavioural",
+              "priority": "must"
+            }
+          ]
+        },
+        "questions": [
+          {
+            "id": "q1",
+            "requirement_ids": [
+              "r1",
+              "r5"
+            ],
+            "category": "technical",
+            "prompt": "How do you optimize slow aggregation pipelines and high-write throughput operations in MongoDB when building scalable APIs in Node.js/TypeScript?",
+            "answer_outline": "Discuss compound indexing strategies, explain plans ($explain), limiting memory consumption using $match early in pipelines, using write concerns appropriately, and leveraging bulk write operations or streaming to avoid Node.js event loop blocking.",
+            "difficulty": 2
+          },
+          {
+            "id": "q2",
+            "requirement_ids": [
+              "r2",
+              "r3",
+              "r4"
+            ],
+            "category": "system-design",
+            "prompt": "Design a high-throughput event ingestion system capable of processing millions of events per minute across microservices using Kafka or RabbitMQ. How do you guarantee message ordering and fault tolerance?",
+            "answer_outline": "Explain partitioning strategies in Kafka vs routing keys in RabbitMQ, ensuring idempotent event consumers, handling dead-letter queues (DLQ), using the transactional outbox pattern to prevent data loss, and scaling consumer groups horizontally.",
+            "difficulty": 3
+          },
+          {
+            "id": "q3",
+            "requirement_ids": [
+              "r7"
+            ],
+            "category": "technical",
+            "prompt": "What are the trade-offs of using GraphQL over REST for backend APIs, and how do you resolve the N+1 query problem when fetching relational data from MongoDB?",
+            "answer_outline": "Detail trade-offs like reduced over-fetching vs client query complexity and caching overhead. Explain solving N+1 issues using DataLoader for batching and caching queries or using MongoDB aggregation pipelines with $lookup.",
+            "difficulty": 2
+          },
+          {
+            "id": "q4",
+            "requirement_ids": [
+              "r8"
+            ],
+            "category": "behavioural",
+            "prompt": "Describe a time when you had to coordinate a breaking API or schema change across multiple cross-functional teams. How did you ensure seamless communication and minimize deployment downtime?",
+            "answer_outline": "Detail the situation using STAR method. Focus on proactive communication, API versioning or deprecation strategies (e.g., feature flags, dual-writing), establishing contract testing with frontend/product teams, and monitoring rollouts.",
+            "difficulty": 2
+          },
+          {
+            "id": "q5",
+            "requirement_ids": [
+              "r5",
+              "r8"
+            ],
+            "category": "company-fit",
+            "prompt": "At a developer-centric product company like PostHog, how do you prioritize backend technical debt and query optimization against fast-paced feature delivery requests from cross-functional teams?",
+            "answer_outline": "Explain data-driven prioritization using latency/throughput metrics, establishing clear SLAs/SLOs, framing technical improvements in terms of user experience and infrastructure cost, and dedicating capacity for platform stability.",
+            "difficulty": 2
+          },
+          {
+            "id": "q6",
+            "requirement_ids": [
+              "r6"
+            ],
+            "category": "technical",
+            "prompt": "In a high-throughput distributed system, how do you configure Kubernetes pod resource requests, limits, and Horizontal Pod Autoscaling (HPA) to prevent OOMKills and handle sudden traffic spikes effectively?",
+            "answer_outline": "A strong answer should explain: 1) The distinction between CPU (compressible) and Memory (non-compressible) resources and how exceeding memory limits leads to OOMKilled pods. 2) Setting appropriate resource requests for scheduling guarantees vs limits to prevent noisy neighbors. 3) Configuring HPA using standard metrics (CPU/Memory) or custom application metrics (e.g., message queue lag, request latency). 4) Strategies like pod disruption budgets and graceful shutdown signals (SIGTERM handling) to ensure zero-downtime rolling updates.",
+            "difficulty": 3
+          }
+        ],
+        "flashcards": [
+          {
+            "id": "f1",
+            "front": "How does Node.js handle CPU-intensive tasks without blocking the main Event Loop?",
+            "back": "By offloading tasks to Worker Threads (worker_threads module) or spawning external processes, avoiding starvation of incoming I/O calls.",
+            "requirement_ids": [
+              "r1"
+            ]
+          },
+          {
+            "id": "f2",
+            "front": "What is the key difference between Kafka and RabbitMQ regarding message consumption?",
+            "back": "Kafka uses a pull-based log architecture where consumers track offsets, allowing message replaying. RabbitMQ uses a push-based model where messages are deleted post-acknowledgments.",
+            "requirement_ids": [
+              "r3"
+            ]
+          },
+          {
+            "id": "f3",
+            "front": "What is the Transactional Outbox Pattern in microservices?",
+            "back": "A pattern where database updates and event publishing are written to a local database outbox table in a single transaction, then read asynchronously by a worker to publish to a message broker, ensuring exactly-once publication.",
+            "requirement_ids": [
+              "r4",
+              "r2"
+            ]
+          },
+          {
+            "id": "f4",
+            "front": "What MongoDB command helps diagnose why a query is running slowly?",
+            "back": "db.collection.explain('executionStats') — it reveals index usage, total documents scanned (docsExamined), execution time, and stage types (e.g., IXSCAN vs COLLSCAN).",
+            "requirement_ids": [
+              "r5"
+            ]
+          },
+          {
+            "id": "f5",
+            "front": "What is the function of a Kubernetes Readiness Probe vs a Liveness Probe?",
+            "back": "A Readiness Probe checks if a pod is ready to accept traffic; if it fails, traffic is stopped. A Liveness Probe checks if the container is alive; if it fails, Kubernetes restarts the container.",
+            "requirement_ids": [
+              "r6"
+            ]
+          }
+        ],
+        "schedule": {
+          "days_available": 5,
+          "days": [
+            {
+              "day": 1,
+              "focus": "Technical Architecture & Core Systems",
+              "question_ids": [
+                "q2",
+                "q1"
+              ],
+              "minutes": 70
+            },
+            {
+              "day": 2,
+              "focus": "Company Fit & Culture Alignment",
+              "question_ids": [
+                "q5"
+              ],
+              "minutes": 25
+            },
+            {
+              "day": 3,
+              "focus": "Behavioural & Leadership Questions",
+              "question_ids": [
+                "q4"
+              ],
+              "minutes": 25
+            },
+            {
+              "day": 4,
+              "focus": "Technical Deep Dive & Coding",
+              "question_ids": [
+                "q6"
+              ],
+              "minutes": 45
+            },
+            {
+              "day": 5,
+              "focus": "Technical Deep Dive & Coding",
+              "question_ids": [
+                "q3"
+              ],
+              "minutes": 25
+            }
+          ]
+        },
+        "coverage": {
+          "uncovered_requirement_ids": [],
+          "passes": 2
+        }
+      },
+      "error": null
     },
     {
       "id": "case-02-frontend-developer",
@@ -17,7 +245,7 @@
       "kit": null,
       "error": {
         "code": "LLM_PROVIDER_ERROR",
-        "message": "Gemini API error (404): This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.6-flash for the latest features and improvements. We recommend you to use the Interactions API."
+        "message": "Gemini API error (503): This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
       }
     }
   ]
